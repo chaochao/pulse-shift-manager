@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@mastra/core": "latest",
+    "@mastra/libsql": "^1.10.1",
+    "@mastra/memory": "^1.18.1",
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
