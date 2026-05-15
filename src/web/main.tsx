@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SquarePen, Send, X } from "lucide-react";
 import "./styles.css";
 
 const THREAD_ID_KEY = "chat_thread_id";
@@ -95,6 +96,7 @@ function App() {
   }
 
   function handleSelectThread(id: string) {
+    if (id === threadId) return;
     localStorage.setItem(THREAD_ID_KEY, id);
     setThreadId(id);
     setMessages(initialMessages);
@@ -211,6 +213,7 @@ function App() {
               fetchThreads();
             }}
           >
+              <SquarePen size={15} strokeWidth={2} className="transition-transform duration-200 group-hover/button:-rotate-12" />
             New Chat
           </Button>
         </div>
@@ -231,7 +234,7 @@ function App() {
                   aria-label="Delete conversation"
                   onClick={(e) => { e.stopPropagation(); handleDeleteThread(thread.id); }}
                 >
-                  ×
+                  <X size={14} strokeWidth={2} />
                 </span>
               </button>
             ))}
@@ -278,8 +281,9 @@ function App() {
           <Button
             type="submit"
             disabled={isStreaming || input.trim() === ""}
-            className="h-[56px] min-w-[88px] text-base font-medium"
+            className="h-[56px] min-w-[88px] text-base font-medium gap-2"
           >
+            <Send size={16} strokeWidth={2} className="transition-transform duration-200 group-hover/button:translate-x-0.5 group-hover/button:-translate-y-0.5" />
             Send
           </Button>
         </form>

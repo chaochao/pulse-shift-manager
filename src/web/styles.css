@@ -147,11 +147,14 @@ textarea {
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
-  line-height: 20px;
-  text-align: center;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
   color: #929292;
-  font-size: 18px;
+}
+
+.thread-item:hover .thread-delete {
+  display: flex;
 }
 
 .thread-delete:hover {
@@ -159,9 +162,14 @@ textarea {
   color: #ffffff;
 }
 
-.thread-item:hover .thread-delete {
-  display: block;
+.thread-delete svg {
+  transition: transform 0.2s ease;
 }
+
+.thread-delete:hover svg {
+  transform: scale(1.2);
+}
+
 
 /* ── Chat header ── */
 
