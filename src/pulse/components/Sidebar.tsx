@@ -25,9 +25,7 @@ export function Sidebar({ onAskPulse }: SidebarProps) {
     <aside className="w-60 flex-none flex flex-col border-r border-[#dddddd] bg-white">
       <div className="px-5 py-5 border-b border-[#dddddd]">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#ff385c] flex items-center justify-center flex-none">
-            <span className="text-white font-bold text-xs">P</span>
-          </div>
+          <img src="/favicon.svg" alt="Pulse" className="w-7 h-7 flex-none" />
           <span className="font-semibold text-[#222222]">Pulse</span>
         </div>
       </div>
