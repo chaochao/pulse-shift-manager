@@ -85,10 +85,7 @@ Fields:
 
 On submit: POST `/api/pulse/shifts` → invalidate `['shifts']` cache → calendar refreshes.
 
-Constraint warnings shown inline (non-blocking for Step 1):
-- Staff not certified for department
-- Staff already assigned same date/shift type
-- Assignment would violate min rest hours
+No constraint validation in Step 1 — clean CRUD only. Constraint checking is Step 2.
 
 ### Edit Shift Dialog
 Triggered by clicking an existing shift card. Same fields as Add, pre-filled. Includes a **Delete** button (destructive, with confirmation).
@@ -301,4 +298,5 @@ prisma/
 - Analytics charts (placeholder page only)
 - Authentication
 - Mobile responsiveness
-- Automated constraint enforcement (violations shown as warnings only; blocking validation is Step 2)
+- Constraint validation / violation warnings (Step 2)
+- Legal/compliance rule enforcement (SchedulingRule model exists in schema but is not used in Step 1)
