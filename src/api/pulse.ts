@@ -83,6 +83,56 @@ router.delete('/shifts/:id', async (req, res) => {
   }
 })
 
+router.get('/patients', async (req, res) => {
+  try {
+    const where = req.query.departmentId ? { departmentId: String(req.query.departmentId) } : undefined
+    const patients = await prisma.patient.findMany({
+      where,
+      include: { department: true },
+      orderBy: { expectedDischargeAt: 'asc' }
+    })
+    res.json(patients)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.post('/patients', async (req, res) => {
+  try {
+    const { name, departmentId, admittedAt, expectedDischargeAt, notes } = req.body
+    const patient = await prisma.patient.create({
+      data: { name, departmentId, admittedAt: new Date(admittedAt), expectedDischargeAt: new Date(expectedDischargeAt), notes: notes ?? '' },
+      include: { department: true }
+    })
+    res.json(patient)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.put('/patients/:id', async (req, res) => {
+  try {
+    const { name, departmentId, admittedAt, expectedDischargeAt, status, notes } = req.body
+    const patient = await prisma.patient.update({
+      where: { id: req.params.id },
+      data: { name, departmentId, admittedAt: new Date(admittedAt), expectedDischargeAt: new Date(expectedDischargeAt), status, notes },
+      include: { department: true }
+    })
+    res.json(patient)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.delete('/patients/:id', async (req, res) => {
+  try {
+    await prisma.patient.delete({ where: { id: req.params.id } })
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
 router.get('/rules', async (_req, res) => {
   try {
     const rules = await prisma.schedulingRule.findFirst()

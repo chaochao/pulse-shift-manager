@@ -6,6 +6,7 @@ import { ChatApp } from './ChatApp'
 import { PulseApp } from '@/pulse/PulseApp'
 import { CalendarPage } from '@/pulse/pages/CalendarPage'
 import { AnalyticsPage } from '@/pulse/pages/AnalyticsPage'
+import { PatientsPage } from '@/pulse/pages/PatientsPage'
 import { Toaster } from 'sonner'
 import './styles.css'
 
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/pulse" element={<PulseApp />}>
             <Route index element={<CalendarPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="patients" element={<PatientsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

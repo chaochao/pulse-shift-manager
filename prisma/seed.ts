@@ -12,7 +12,7 @@ async function main() {
   await prisma.sickCall.deleteMany()
   await prisma.timeOffRequest.deleteMany()
   await prisma.shift.deleteMany()
-  await prisma.patientCensus.deleteMany()
+  await prisma.patient.deleteMany()
   await prisma.staff.deleteMany()
   await prisma.department.deleteMany()
   await prisma.schedulingRule.deleteMany()
@@ -75,7 +75,28 @@ async function main() {
     data: { minRestHoursBetweenShifts: 11, maxNightShiftsPerMonth: 8, maxShiftsPerWeek: 5, maxHoursPerWeek: 60 }
   })
 
-  console.log(`Seeded: 5 departments, ${allStaff.length} staff, ${shiftData.length} shifts`)
+  const patientRows = [
+    { name: 'James Hooper',    departmentId: icu.id,       admittedAt: subDays(today, 5),  expectedDischargeAt: addDays(today, 2) },
+    { name: 'Linda Park',      departmentId: icu.id,       admittedAt: subDays(today, 3),  expectedDischargeAt: addDays(today, 5) },
+    { name: 'Robert Nguyen',   departmentId: icu.id,       admittedAt: subDays(today, 1),  expectedDischargeAt: addDays(today, 7) },
+    { name: 'Maria Gonzalez',  departmentId: ed.id,        admittedAt: subDays(today, 2),  expectedDischargeAt: addDays(today, 1) },
+    { name: 'Tom Fletcher',    departmentId: ed.id,        admittedAt: today,              expectedDischargeAt: addDays(today, 3) },
+    { name: 'Sara Kim',        departmentId: ed.id,        admittedAt: subDays(today, 1),  expectedDischargeAt: subDays(today, 0), status: 'discharged' },
+    { name: 'David Chen',      departmentId: surgery.id,   admittedAt: subDays(today, 4),  expectedDischargeAt: addDays(today, 1) },
+    { name: 'Emily Watson',    departmentId: surgery.id,   admittedAt: subDays(today, 2),  expectedDischargeAt: addDays(today, 4) },
+    { name: 'Frank Miller',    departmentId: cardiology.id, admittedAt: subDays(today, 6), expectedDischargeAt: addDays(today, 2) },
+    { name: 'Grace Lee',       departmentId: cardiology.id, admittedAt: subDays(today, 3), expectedDischargeAt: addDays(today, 6) },
+    { name: 'Henry Adams',     departmentId: cardiology.id, admittedAt: subDays(today, 1), expectedDischargeAt: addDays(today, 8) },
+    { name: 'Isabella Moore',  departmentId: general.id,   admittedAt: subDays(today, 7),  expectedDischargeAt: addDays(today, 0), status: 'discharged' },
+    { name: 'Jack Thompson',   departmentId: general.id,   admittedAt: subDays(today, 2),  expectedDischargeAt: addDays(today, 3) },
+    { name: 'Karen White',     departmentId: general.id,   admittedAt: subDays(today, 1),  expectedDischargeAt: addDays(today, 5) },
+  ]
+
+  await prisma.patient.createMany({
+    data: patientRows.map(p => ({ ...p, status: p.status ?? 'admitted' }))
+  })
+
+  console.log(`Seeded: 5 departments, ${allStaff.length} staff, ${shiftData.length} shifts, ${patientRows.length} patients`)
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect())

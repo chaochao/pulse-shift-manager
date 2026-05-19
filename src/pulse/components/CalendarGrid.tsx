@@ -30,6 +30,12 @@ export function CalendarGrid() {
   const [editingShift, setEditingShift] = useState<Shift | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [listShifts, setListShifts] = useState<Shift[] | null>(null)
+  const [bodyVisible, setBodyVisible] = useState(true)
+
+  function fadeSwap(update: () => void) {
+    setBodyVisible(false)
+    setTimeout(() => { update(); setBodyVisible(true) }, 120)
+  }
 
   const { start, end } = getQueryRange(viewMode, currentDate)
   const { data: shifts = [] } = useShifts(start, end)
@@ -64,7 +70,12 @@ export function CalendarGrid() {
   }
 
   function navigate(dir: 'prev' | 'next') {
-    setCurrentDate((d) => viewMode === 'month' ? navigateMonth(d, dir) : navigateWeek(d, dir))
+    fadeSwap(() => setCurrentDate((d) => viewMode === 'month' ? navigateMonth(d, dir) : navigateWeek(d, dir)))
+  }
+
+  function switchViewMode(mode: ViewMode) {
+    if (mode === viewMode) return
+    fadeSwap(() => setViewMode(mode))
   }
 
   return (
@@ -89,13 +100,13 @@ export function CalendarGrid() {
         </div>
         <div className="flex rounded-md border border-[#dddddd] overflow-hidden text-xs">
           <button
-            onClick={() => setViewMode('month')}
+            onClick={() => switchViewMode('month')}
             className={cn('px-3 py-1.5 font-medium transition-colors',
               viewMode === 'month' ? 'bg-[#222222] text-white' : 'text-[#6a6a6a] hover:bg-[#f7f7f7]'
             )}
           >Month</button>
           <button
-            onClick={() => setViewMode('week')}
+            onClick={() => switchViewMode('week')}
             className={cn('px-3 py-1.5 font-medium transition-colors',
               viewMode === 'week' ? 'bg-[#222222] text-white' : 'text-[#6a6a6a] hover:bg-[#f7f7f7]'
             )}
@@ -114,7 +125,10 @@ export function CalendarGrid() {
       </div>
 
       {/* Calendar body */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto transition-opacity duration-[120ms]"
+        style={{ opacity: bodyVisible ? 1 : 0 }}
+      >
         {viewMode === 'month' ? (
           <MonthBody
             currentDate={currentDate}
@@ -245,9 +259,21 @@ function WeekBody({
             return (
               <div
                 key={i}
-                className="min-h-[100px] border-b border-r border-[#ebebeb] p-2 cursor-pointer hover:bg-[#fafafa] transition-colors"
-                onClick={() => onCellClick(day)}
+                className="group min-h-[100px] border-b border-r border-[#ebebeb] px-2 pb-2 pt-7 hover:bg-[#fafafa] transition-colors relative"
               >
+                <div className="absolute top-1.5 right-1.5">
+                  <div className="relative">
+                    <button
+                      onClick={() => onCellClick(day)}
+                      className="peer opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded-full text-[#6a6a6a] hover:bg-[#ebebeb] hover:text-[#222222]"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <span className="pointer-events-none absolute right-0 top-6 z-20 whitespace-nowrap rounded-md bg-[#222222] px-2 py-1 text-[11px] text-white opacity-0 peer-hover:opacity-100 transition-opacity">
+                      Add shift — {format(day, 'MMM d')}
+                    </span>
+                  </div>
+                </div>
                 {Object.entries(depts).map(([deptId, depShifts]) => {
                   const dept = deptMap[deptId]
                   if (!dept) return null

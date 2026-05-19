@@ -29,6 +29,17 @@ export interface Staff {
   maxConsecutiveShifts: number
 }
 
+export interface Patient {
+  id: string
+  name: string
+  departmentId: string
+  department: Department
+  admittedAt: string
+  expectedDischargeAt: string
+  status: string
+  notes: string
+}
+
 export interface Shift {
   id: string
   staffId: string

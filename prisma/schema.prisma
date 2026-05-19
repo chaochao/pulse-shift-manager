@@ -20,7 +20,7 @@ model Department {
   requiredCertifications String          @default("")
   staff                  Staff[]
   shifts                 Shift[]
-  patientCensus          PatientCensus[]
+  patients               Patient[]
   createdAt              DateTime        @default(now())
 }
 
@@ -57,15 +57,16 @@ model Shift {
   createdAt    DateTime   @default(now())
 }
 
-model PatientCensus {
-  id             String     @id @default(cuid())
-  departmentId   String
-  department     Department @relation(fields: [departmentId], references: [id])
-  date           DateTime
-  shiftType      String
-  predictedCount Int        @default(0)
-  actualCount    Int        @default(0)
-  createdAt      DateTime   @default(now())
+model Patient {
+  id                  String     @id @default(cuid())
+  name                String
+  departmentId        String
+  department          Department @relation(fields: [departmentId], references: [id])
+  admittedAt          DateTime
+  expectedDischargeAt DateTime
+  status              String     @default("admitted")
+  notes               String     @default("")
+  createdAt           DateTime   @default(now())
 }
 
 model TimeOffRequest {
