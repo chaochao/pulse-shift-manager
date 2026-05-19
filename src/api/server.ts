@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import { z } from "zod";
 import { chatAgent } from "../mastra/agents/chat-agent";
+import pulseRouter from "./pulse";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -15,6 +16,7 @@ const chatRequestSchema = z.object({
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/pulse', pulseRouter);
 
 app.get("/api/health", (_req, res) => {
   const routes: string[] = [];
