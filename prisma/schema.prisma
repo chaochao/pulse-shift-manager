@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Department {
+  id                     String          @id @default(cuid())
+  name                   String
+  color                  String
+  minStaffDay            Int             @default(0)
+  minStaffEvening        Int             @default(0)
+  minStaffNight          Int             @default(0)
+  maxStaffDay            Int             @default(0)
+  maxStaffEvening        Int             @default(0)
+  maxStaffNight          Int             @default(0)
+  nursePatientRatio      Float           @default(4)
+  requiredCertifications String          @default("")
+  staff                  Staff[]
+  shifts                 Shift[]
+  patientCensus          PatientCensus[]
+  createdAt              DateTime        @default(now())
+}
+
+model Staff {
+  id                   String           @id @default(cuid())
+  name                 String
+  role                 String
+  departmentId         String
+  department           Department       @relation(fields: [departmentId], references: [id])
+  employmentType       String           @default("fullTime")
+  contractHoursPerWeek Int              @default(36)
+  preferredShift       String           @default("none")
+  certifications       String           @default("")
+  maxConsecutiveShifts Int              @default(3)
+  shifts               Shift[]
+  timeOffRequests      TimeOffRequest[]
+  shiftSwapsRequested  ShiftSwap[]      @relation("Requester")
+  shiftSwapsTargeted   ShiftSwap[]      @relation("Target")
+  sickCalls            SickCall[]
+  createdAt            DateTime         @default(now())
+}
+
+model Shift {
+  id           String     @id @default(cuid())
+  staffId      String
+  staff        Staff      @relation(fields: [staffId], references: [id])
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  date         DateTime
+  type         String
+  hours        Int        @default(12)
+  status       String     @default("scheduled")
+  swapRequest  ShiftSwap?
+  createdAt    DateTime   @default(now())
+}
+
+model PatientCensus {
+  id             String     @id @default(cuid())
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id])
+  date           DateTime
+  shiftType      String
+  predictedCount Int        @default(0)
+  actualCount    Int        @default(0)
+  createdAt      DateTime   @default(now())
+}
+
+model TimeOffRequest {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  reason    String   @default("")
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model ShiftSwap {
+  id          String   @id @default(cuid())
+  requesterId String
+  requester   Staff    @relation("Requester", fields: [requesterId], references: [id])
+  targetId    String?
+  target      Staff?   @relation("Target", fields: [targetId], references: [id])
+  shiftId     String   @unique
+  shift       Shift    @relation(fields: [shiftId], references: [id])
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+}
+
+model SickCall {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  date      DateTime
+  shiftType String
+  createdAt DateTime @default(now())
+}
+
+model SchedulingRule {
+  id                        String @id @default(cuid())
+  minRestHoursBetweenShifts Int    @default(11)
+  maxNightShiftsPerMonth    Int    @default(8)
+  maxShiftsPerWeek          Int    @default(5)
+  maxHoursPerWeek           Int    @default(60)
+}
