@@ -13,6 +13,7 @@ export const scoreScheduleTool = createTool({
     endDate: z.string().describe('End date ISO string'),
   }),
   execute: async ({ departmentId, startDate, endDate }) => {
+    try {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
@@ -53,6 +54,10 @@ export const scoreScheduleTool = createTool({
       individual: full.individual.average,
       warnings: full.warnings.slice(0, 5),
       violations: full.violations,
+    }
+    } catch (err) {
+      console.error('[scoreSchedule] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
     }
   },
 })

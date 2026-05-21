@@ -10,6 +10,7 @@ export const getBlockedDates = createTool({
     endDate: z.string().describe('End date ISO string'),
   }),
   execute: async ({ startDate, endDate }) => {
+    try {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
@@ -29,5 +30,9 @@ export const getBlockedDates = createTool({
     ])
 
     return { timeOffRequests, sickCalls }
+    } catch (err) {
+      console.error('[getBlockedDates] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
   },
 })

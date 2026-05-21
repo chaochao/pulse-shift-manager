@@ -110,6 +110,14 @@ model SchedulingRule {
   minRestAfterStretchHours  Int    @default(48)
 }
 
+model HospitalSettings {
+  id                  String @id @default(cuid())
+  name                String @default("Hospital")
+  timezone            String @default("America/Los_Angeles")
+  dayShiftStartHour   Int    @default(8)
+  nightShiftStartHour Int    @default(20)
+}
+
 model ShiftProposal {
   id          String   @id @default(cuid())
   optimizeFor String

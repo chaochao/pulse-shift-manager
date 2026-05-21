@@ -53,7 +53,7 @@ const TOOL_LABELS: Record<string, string> = {
   getBlockedDates: 'Checked time off & sick calls',
   scoreSchedule: 'Scored schedule',
   proposeShifts: 'Generated proposal',
-  confirmShifts: 'Confirmed shifts',
+  recommendShifts: 'Recommended staff',
 }
 
 function ToolEvidenceCard({ event }: { event: ToolEvent }) {
@@ -96,7 +96,8 @@ function CoverageGapTable({ toolEvents }: { toolEvents: ToolEvent[] }) {
   if (!result?.gaps?.length) return <p className="text-xs text-[#6a6a6a] mt-1">No coverage gaps found.</p>
 
   const fmt = (iso: string) => {
-    const d = new Date(iso)
+    // Parse as noon UTC so the date is the same in all timezones
+    const d = new Date(`${iso.split('T')[0]}T12:00:00Z`)
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   }
 
@@ -147,11 +148,23 @@ const TOOL_UI_RENDERERS: Partial<Record<string, React.ComponentType<{ result: un
 // Extract proposals from tool events (reliable) then fall back to text markers
 function extractProposals(text: string, toolEvents?: ToolEvent[]): Proposal[] {
   const fromTools = (toolEvents ?? [])
-    .filter(e => e.toolName === 'proposeShifts' && (e.result as Record<string, unknown>)?.proposalId)
-    .map((e, i) => ({
-      proposalId: String((e.result as Record<string, unknown>).proposalId),
-      label: `Review Option ${i + 1} — ${(e.result as Record<string, unknown>).optimizeFor === 'coverage' ? 'Better Coverage' : 'Better for Staff'}`,
-    }))
+    .filter(e =>
+      (e.toolName === 'proposeShifts' || e.toolName === 'recommendShifts') &&
+      (e.result as Record<string, unknown>)?.proposalId
+    )
+    .map((e, i) => {
+      const result = e.result as Record<string, unknown>
+      if (e.toolName === 'recommendShifts') {
+        return {
+          proposalId: String(result.proposalId),
+          label: `Review Recommendations`,
+        }
+      }
+      return {
+        proposalId: String(result.proposalId),
+        label: `Review Option ${i + 1} — ${result.optimizeFor === 'coverage' ? 'Better Coverage' : 'Better for Staff'}`,
+      }
+    })
   if (fromTools.length > 0) return fromTools
 
   // Fallback: parse text markers
@@ -174,8 +187,27 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const [drawerWidth, setDrawerWidth] = useState(320)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragRef.current = { startX: e.clientX, startWidth: drawerWidth }
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      const delta = ev.clientX - dragRef.current.startX
+      setDrawerWidth(Math.min(700, Math.max(280, dragRef.current.startWidth + delta)))
+    }
+    const onUp = () => {
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [drawerWidth])
 
   useEffect(() => {
     if (open) {
@@ -286,8 +318,14 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
 
   return (
     <div
-      className={`absolute left-0 top-0 h-full w-80 bg-white border-r border-[#dddddd] shadow-xl z-10 flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`absolute left-0 top-0 h-full bg-white border-r border-[#dddddd] shadow-xl z-10 flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : '-translate-x-full'}`}
+      style={{ width: drawerWidth }}
     >
+      {/* Drag handle */}
+      <div
+        onMouseDown={onDragStart}
+        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#4f86c6]/40 transition-colors z-20"
+      />
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#dddddd] flex-none">
         <div className="flex items-center gap-2">

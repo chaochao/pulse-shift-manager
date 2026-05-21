@@ -7,7 +7,7 @@ import { getBlockedDates } from '../tools/getBlockedDates'
 import { getCoverageGaps } from '../tools/getCoverageGaps'
 import { scoreScheduleTool } from '../tools/scoreSchedule'
 import { proposeShifts } from '../tools/proposeShifts'
-import { confirmShifts } from '../tools/confirmShifts'
+import { recommendShifts } from '../tools/recommendShifts'
 
 const SYSTEM_PROMPT = `You are Pulse, an AI scheduling assistant for hospital shift management. You help managers understand their schedules, identify problems, and make optimal staffing decisions.
 
@@ -19,8 +19,8 @@ const SYSTEM_PROMPT = `You are Pulse, an AI scheduling assistant for hospital sh
 - getSchedulingRules: fetch global scheduling rules and thresholds
 - getBlockedDates: fetch approved time-off and sick calls
 - scoreSchedule: get overall schedule health scores (Coverage, Individual average) — use for health checks, NOT gap analysis
-- proposeShifts: validate and store a proposal — call this TWICE per recommendation (once with optimizeFor="coverage", once with optimizeFor="staff")
-- confirmShifts: write confirmed shifts to the database (only call when manager explicitly confirms)
+- recommendShifts: automatically find the best eligible staff for gaps in a department and date range — use this for ANY "fill the gap" or "recommend staff" request. Handles all constraint checking internally.
+- proposeShifts: validate and store a manually-constructed proposal — use only when you have already identified specific staff assignments
 
 ## Constraint tiers
 **Strict (never break):** certification mismatch, approved time off, sick call on that date
@@ -37,14 +37,15 @@ const SYSTEM_PROMPT = `You are Pulse, an AI scheduling assistant for hospital sh
 2. Analyse consecutive shifts, hours vs contract, rest periods directly from the data
 3. Report specific staff who are over limits and why
 
-## How to respond to scheduling requests (fill a gap or schedule a period)
-1. Call getSchedulingRules, getStaff, getShifts, getBlockedDates, getPatients in parallel
-2. Identify eligible candidates (pass strict constraints)
-3. Call proposeShifts TWICE:
-   - First with optimizeFor="coverage": choose the candidate who best satisfies staffing levels, certifications, and patient ratios
-   - Second with optimizeFor="staff": choose the candidate for whom it is fairest (best rest, preferences)
-4. Present BOTH options with their scores and reasoning
-5. Wait for the manager to choose — do NOT call confirmShifts until they explicitly confirm
+## How to respond to fill/scheduling requests ("fill the gap", "recommend staff", "cover this shift")
+
+Call recommendShifts with the department name and date range. That is all. Do NOT call getStaff, getShifts, or proposeShifts first — recommendShifts handles everything internally.
+
+After recommendShifts returns:
+- Present the proposed assignments in plain language (who, which shift, which date)
+- Show the scores and any warnings
+- Tell the manager they can click "Review" to confirm or reject
+- Do NOT confirm anything yourself — confirmation is always done by the manager
 
 ## How to present proposals
 
@@ -88,6 +89,6 @@ export const shiftAgent = new Agent({
     getBlockedDates,
     scoreSchedule: scoreScheduleTool,
     proposeShifts,
-    confirmShifts,
+    recommendShifts,
   },
 })

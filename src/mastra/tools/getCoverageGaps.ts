@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { prisma } from './prisma'
+import { startOfDayUTC, endOfDayUTC, toLocalDateStr } from './dateUtils'
 
 export const getCoverageGaps = createTool({
   id: 'getCoverageGaps',
@@ -10,8 +11,12 @@ export const getCoverageGaps = createTool({
     endDate: z.string().describe('End date ISO string'),
   }),
   execute: async ({ startDate, endDate }) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    try {
+    const hospitalSettings = await prisma.hospitalSettings.findFirst()
+    const timezone = hospitalSettings?.timezone ?? 'America/Los_Angeles'
+
+    const start = startOfDayUTC(startDate, timezone)
+    const end = endOfDayUTC(endDate, timezone)
 
     const [shifts, departments] = await Promise.all([
       prisma.shift.findMany({
@@ -33,7 +38,7 @@ export const getCoverageGaps = createTool({
     const current = new Date(start)
 
     while (current <= end) {
-      const dateStr = current.toISOString().split('T')[0]
+      const localDateStr = toLocalDateStr(current, timezone)
 
       for (const dept of departments) {
         for (const shiftType of ['day', 'night'] as const) {
@@ -42,18 +47,18 @@ export const getCoverageGaps = createTool({
 
           const scheduled = shifts.filter(s =>
             s.departmentId === dept.id &&
-            new Date(s.date).toDateString() === current.toDateString() &&
+            toLocalDateStr(new Date(s.date), timezone) === localDateStr &&
             s.type === shiftType
           ).length
 
           if (scheduled < required) {
-            gaps.push({ department: dept.name, date: dateStr, shift: shiftType, scheduled, required, gap: required - scheduled })
+            gaps.push({ department: dept.name, date: localDateStr, shift: shiftType, scheduled, required, gap: required - scheduled })
             affectedDepts.add(dept.name)
           }
         }
       }
 
-      current.setDate(current.getDate() + 1)
+      current.setUTCDate(current.getUTCDate() + 1)
     }
 
     const msPerDay = 24 * 60 * 60 * 1000
@@ -66,6 +71,10 @@ export const getCoverageGaps = createTool({
         daysChecked,
         departmentsAffected: Array.from(affectedDepts),
       },
+    }
+    } catch (err) {
+      console.error('[getCoverageGaps] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
     }
   },
 })

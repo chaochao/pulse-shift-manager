@@ -7,8 +7,13 @@ export const getSchedulingRules = createTool({
   description: 'Fetch the global scheduling rules including rest requirements, shift limits, and manager-configured thresholds.',
   inputSchema: z.object({}),
   execute: async () => {
+    try {
     const rules = await prisma.schedulingRule.findFirst()
     if (!rules) throw new Error('No scheduling rules found. Run the seed script first.')
     return rules
+    } catch (err) {
+      console.error('[getSchedulingRules] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
   },
 })

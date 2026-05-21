@@ -9,6 +9,7 @@ export const getPatients = createTool({
     departmentId: z.string().optional().describe('Filter by department ID'),
   }),
   execute: async ({ departmentId }) => {
+    try {
     const patients = await prisma.patient.findMany({
       where: {
         ...(departmentId ? { departmentId } : {}),
@@ -17,5 +18,9 @@ export const getPatients = createTool({
       include: { department: true },
     })
     return patients
+    } catch (err) {
+      console.error('[getPatients] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
   },
 })

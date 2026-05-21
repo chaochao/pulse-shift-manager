@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 function generateThreadId() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -18,6 +19,7 @@ export function PulseApp() {
   const [chatMessages, setChatMessages] = useState<Message[]>([])
   const threadIdRef = useRef<string>(generateThreadId())
   const location = useLocation()
+  const queryClient = useQueryClient()
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
@@ -40,7 +42,10 @@ export function PulseApp() {
           proposalId={proposal.id}
           label={proposal.label}
           onClose={() => setProposal(null)}
-          onConfirmed={() => setProposal(null)}
+          onConfirmed={() => {
+            setProposal(null)
+            queryClient.invalidateQueries({ queryKey: ['shifts'] })
+          }}
         />
       )}
     </div>

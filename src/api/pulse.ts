@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { fromZonedTime } from 'date-fns-tz'
 
 const router = Router()
 const url = process.env.PULSE_DATABASE_URL ?? 'file:./pulse.db'
@@ -50,8 +51,13 @@ router.get('/shifts', async (req, res) => {
 router.post('/shifts', async (req, res) => {
   try {
     const { staffId, departmentId, date, type, hours } = req.body
+    const hospitalSettings = await prisma.hospitalSettings.findFirst()
+    const timezone = hospitalSettings?.timezone ?? 'America/Los_Angeles'
+    // Normalize to midnight local time — date only, no time component
+    const dateStr = String(date).split('T')[0]
+    const normalizedDate = fromZonedTime(`${dateStr}T00:00:00`, timezone)
     const shift = await prisma.shift.create({
-      data: { staffId, departmentId, date: new Date(date), type, hours: Number(hours) },
+      data: { staffId, departmentId, date: normalizedDate, type, hours: Number(hours) },
       include: { staff: { include: { department: true } }, department: true }
     })
     res.json(shift)
@@ -155,6 +161,35 @@ router.get('/rules', async (_req, res) => {
   try {
     const rules = await prisma.schedulingRule.findFirst()
     res.json(rules)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.get('/hospital-settings', async (_req, res) => {
+  try {
+    const settings = await prisma.hospitalSettings.findFirst()
+    res.json(settings)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.put('/hospital-settings', async (req, res) => {
+  try {
+    const { name, dayShiftStartHour, nightShiftStartHour, timezone } = req.body
+    const existing = await prisma.hospitalSettings.findFirst()
+    if (!existing) return void res.status(404).json({ error: 'No hospital settings found' })
+    const updated = await prisma.hospitalSettings.update({
+      where: { id: existing.id },
+      data: {
+        ...(name !== undefined && { name: String(name) }),
+        ...(dayShiftStartHour !== undefined && { dayShiftStartHour: Number(dayShiftStartHour) }),
+        ...(nightShiftStartHour !== undefined && { nightShiftStartHour: Number(nightShiftStartHour) }),
+        ...(timezone !== undefined && { timezone: String(timezone) }),
+      },
+    })
+    res.json(updated)
   } catch (e) {
     res.status(500).json({ error: String(e) })
   }

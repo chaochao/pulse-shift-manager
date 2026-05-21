@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Sun, Moon } from 'lucide-react'
 import { useDepartments } from '@/pulse/hooks/useDepartments'
 import { toast } from 'sonner'
@@ -11,11 +11,66 @@ interface DeptDraft {
   maxStaffNight: number
 }
 
+interface SchedulingRules {
+  id: string
+  dayShiftStartHour: number
+  nightShiftStartHour: number
+  timezone: string
+}
+
+const TIMEZONES = [
+  'America/Los_Angeles',
+  'America/Denver',
+  'America/Chicago',
+  'America/New_York',
+  'America/Phoenix',
+  'Europe/London',
+  'Europe/Paris',
+  'Asia/Tokyo',
+  'Australia/Sydney',
+]
+
+function hourLabel(h: number) {
+  const ampm = h < 12 ? 'AM' : 'PM'
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${display}:00 ${ampm}`
+}
+
 export function SettingsPage() {
   const { data: departments = [] } = useDepartments()
   const queryClient = useQueryClient()
   const [drafts, setDrafts] = useState<Record<string, DeptDraft>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
+
+  const { data: rules } = useQuery<SchedulingRules>({
+    queryKey: ['hospital-settings'],
+    queryFn: () => fetch('/api/pulse/hospital-settings').then(r => r.json()),
+  })
+
+  const [rulesDraft, setRulesDraft] = useState<Partial<SchedulingRules>>({})
+  const [savingRules, setSavingRules] = useState(false)
+
+  const effectiveRules = { ...rules, ...rulesDraft } as SchedulingRules
+  const rulesIsDirty = Object.keys(rulesDraft).length > 0
+
+  async function saveRules() {
+    setSavingRules(true)
+    try {
+      const res = await fetch('/api/pulse/hospital-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rulesDraft),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      await queryClient.invalidateQueries({ queryKey: ['hospital-settings'] })
+      setRulesDraft({})
+      toast.success(`Shift times updated`)
+    } catch {
+      toast.error('Failed to save shift times')
+    } finally {
+      setSavingRules(false)
+    }
+  }
 
   function getDraft(id: string, field: keyof DeptDraft, fallback: number) {
     return drafts[id]?.[field] ?? fallback
@@ -53,10 +108,66 @@ export function SettingsPage() {
       <div className="px-6 py-3 border-b border-[#dddddd] flex-none">
         <h1 className="text-lg font-semibold text-[#222222]">Settings</h1>
       </div>
-      <div className="flex-1 overflow-auto px-6 py-6">
+      <div className="flex-1 overflow-auto px-6 py-6 space-y-10">
         <div className="max-w-2xl">
-          <p className="text-sm text-[#6a6a6a] mb-5">
-            Set minimum and maximum staff headcount per shift type for each department. The scoring engine uses these thresholds to evaluate coverage.
+
+          {/* Shift times */}
+          <h2 className="text-sm font-semibold text-[#222222] mb-1">Shift Hours</h2>
+          <p className="text-sm text-[#6a6a6a] mb-4">
+            Configure when day and night shifts start, and the hospital's timezone for scheduling and notifications.
+          </p>
+          <div className="flex items-end gap-6 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-[#6a6a6a] flex items-center gap-1">
+                <Sun size={12} className="text-[#f59e0b]" /> Day shift start
+              </label>
+              <select
+                value={effectiveRules.dayShiftStartHour ?? 8}
+                onChange={e => setRulesDraft(prev => ({ ...prev, dayShiftStartHour: Number(e.target.value) }))}
+                className="border border-[#dddddd] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#4f86c6] focus:ring-1 focus:ring-[#4f86c6]"
+              >
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={i}>{hourLabel(i)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-[#6a6a6a] flex items-center gap-1">
+                <Moon size={12} className="text-[#6366f1]" /> Night shift start
+              </label>
+              <select
+                value={effectiveRules.nightShiftStartHour ?? 20}
+                onChange={e => setRulesDraft(prev => ({ ...prev, nightShiftStartHour: Number(e.target.value) }))}
+                className="border border-[#dddddd] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#4f86c6] focus:ring-1 focus:ring-[#4f86c6]"
+              >
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={i}>{hourLabel(i)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-[#6a6a6a]">Timezone</label>
+              <select
+                value={effectiveRules.timezone ?? 'America/Los_Angeles'}
+                onChange={e => setRulesDraft(prev => ({ ...prev, timezone: e.target.value }))}
+                className="border border-[#dddddd] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#4f86c6] focus:ring-1 focus:ring-[#4f86c6]"
+              >
+                {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+              </select>
+            </div>
+            <button
+              onClick={saveRules}
+              disabled={!rulesIsDirty || savingRules}
+              className="px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-[#4f86c6] text-white hover:bg-[#3d6fa8]"
+            >
+              {savingRules ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+
+          {/* Department headcount */}
+          <h2 className="text-sm font-semibold text-[#222222] mt-8 mb-1">Department Headcount</h2>
+          <p className="text-sm text-[#6a6a6a] mb-4">
+            Set minimum and maximum staff headcount per shift type for each department.
           </p>
           <table className="w-full text-sm border-collapse">
             <thead>

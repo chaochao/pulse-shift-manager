@@ -22,8 +22,10 @@ export const proposeShifts = createTool({
     endDate: z.string().describe('End of the period being scheduled'),
   }),
   execute: async ({ assignments, optimizeFor, startDate, endDate }) => {
+    try {
     const start = new Date(startDate)
     const end = new Date(endDate)
+    end.setUTCHours(23, 59, 59, 999)
 
     // Load context for validation
     const [existingShifts, allStaff, departments, patients, rulesRow, timeOff, sickCalls] = await Promise.all([
@@ -62,7 +64,7 @@ export const proposeShifts = createTool({
       // STRICT: sick call
       const onSickCall = sickCalls.some(sc =>
         sc.staffId === a.staffId &&
-        new Date(sc.date).toDateString() === assignDate.toDateString()
+        new Date(sc.date).toISOString().split('T')[0] === assignDate.toISOString().split('T')[0]
       )
       if (onSickCall) {
         violations.push({ rule: 'sickCall', staffId: a.staffId, detail: `${staff.name} has a sick call on ${assignDate.toDateString()}` })
@@ -158,6 +160,10 @@ export const proposeShifts = createTool({
       warnings: [...warnings, ...scores.warnings],
       violations,
       hasViolations: violations.length > 0,
+    }
+    } catch (err) {
+      console.error('[proposeShifts] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
     }
   },
 })

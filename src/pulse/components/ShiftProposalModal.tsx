@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X, CheckCircle, XCircle, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface Assignment {
   staffId: string
@@ -112,6 +113,8 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Confirmation failed')
+      const count = data.confirmedCount ?? proposal?.assignments.length ?? 0
+      toast.success(`${count} shift${count !== 1 ? 's' : ''} confirmed and added to the schedule`)
       onConfirmed()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Confirmation failed')

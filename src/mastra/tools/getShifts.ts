@@ -11,6 +11,7 @@ export const getShifts = createTool({
     endDate: z.string().describe('End date ISO string'),
   }),
   execute: async ({ departmentId, startDate, endDate }) => {
+    try {
     const shifts = await prisma.shift.findMany({
       where: {
         ...(departmentId ? { departmentId } : {}),
@@ -20,5 +21,9 @@ export const getShifts = createTool({
       orderBy: { date: 'asc' },
     })
     return shifts
+    } catch (err) {
+      console.error('[getShifts] error:', err)
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
   },
 })

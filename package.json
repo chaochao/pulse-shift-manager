@@ -28,6 +28,7 @@
     "clsx": "^2.1.1",
     "cors": "latest",
     "date-fns": "^4.2.1",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "latest",
     "express": "latest",
     "lucide-react": "^1.16.0",
