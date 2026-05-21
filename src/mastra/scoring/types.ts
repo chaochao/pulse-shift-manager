@@ -60,7 +60,6 @@ export interface ScoreResult {
     average: number
     byStaff: StaffScoreDetail[]
   }
-  equity: number
   warnings: Array<{ rule: string; staffId: string; detail: string }>
   violations: Array<{ rule: string; staffId: string; detail: string }>
 }

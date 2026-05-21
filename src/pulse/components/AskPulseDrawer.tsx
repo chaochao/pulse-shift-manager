@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { X, Sparkles, Send, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+import { X, Sparkles, Send, ChevronDown, ChevronRight, Wrench, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -11,7 +11,7 @@ interface ToolEvent {
   result?: unknown
 }
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant'
   content: string
   toolEvents?: ToolEvent[]
@@ -26,6 +26,9 @@ interface AskPulseDrawerProps {
   open: boolean
   onClose: () => void
   onReviewProposal?: (proposalId: string, label: string) => void
+  messages: Message[]
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  threadId: string
 }
 
 const SUGGESTIONS = [
@@ -42,6 +45,7 @@ function generateThreadId() {
 }
 
 const TOOL_LABELS: Record<string, string> = {
+  getCoverageGaps: 'Checked coverage gaps',
   getShifts: 'Fetched shifts',
   getStaff: 'Fetched staff',
   getPatients: 'Fetched patient census',
@@ -76,8 +80,81 @@ function ToolEvidenceCard({ event }: { event: ToolEvent }) {
   )
 }
 
-// Extract [Review Option N] proposalId: <id> markers from agent text
-function extractProposals(text: string): Proposal[] {
+interface CoverageGap {
+  department: string
+  date: string
+  shift: string
+  scheduled: number
+  required: number
+  gap: number
+}
+
+function CoverageGapTable({ toolEvents }: { toolEvents: ToolEvent[] }) {
+  const event = toolEvents.find(e => e.toolName === 'getCoverageGaps')
+  if (!event) return null
+  const result = event.result as { gaps: CoverageGap[]; summary: { totalGaps: number; daysChecked: number } }
+  if (!result?.gaps?.length) return <p className="text-xs text-[#6a6a6a] mt-1">No coverage gaps found.</p>
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+
+  return (
+    <div className="w-full mt-2 rounded-lg border border-[#dddddd] overflow-hidden text-[11px]">
+      <div className="px-2.5 py-1.5 bg-[#f7f7f7] border-b border-[#dddddd] flex items-center justify-between">
+        <span className="font-semibold text-[#222222]">Coverage Gaps</span>
+        <span className="text-[#6a6a6a]">{result.summary.totalGaps} gaps · {result.summary.daysChecked}d</span>
+      </div>
+      <div className="max-h-48 overflow-y-auto">
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 bg-[#fafafa]">
+            <tr className="border-b border-[#ebebeb]">
+              <th className="text-left px-2.5 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Date</th>
+              <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Dept</th>
+              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Shift</th>
+              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Have / Need</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.gaps.map((g, i) => (
+              <tr key={i} className="border-b border-[#f5f5f5] last:border-0">
+                <td className="px-2.5 py-1.5 text-[#222222]">{fmt(g.date)}</td>
+                <td className="px-2 py-1.5 text-[#222222]">{g.department}</td>
+                <td className="px-2 py-1.5 text-center">
+                  {g.shift === 'day'
+                    ? <Sun size={11} className="inline text-[#f59e0b]" />
+                    : <Moon size={11} className="inline text-[#6366f1]" />}
+                </td>
+                <td className="px-2 py-1.5 text-center">
+                  <span className="text-red-600 font-semibold">{g.scheduled}</span>
+                  <span className="text-[#6a6a6a]">/{g.required}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Registry: add an entry here to render a custom UI for a tool result
+const TOOL_UI_RENDERERS: Partial<Record<string, React.ComponentType<{ result: unknown }>>> = {
+  getCoverageGaps: ({ result }) => <CoverageGapTable toolEvents={[{ toolName: 'getCoverageGaps', result }]} />,
+}
+
+// Extract proposals from tool events (reliable) then fall back to text markers
+function extractProposals(text: string, toolEvents?: ToolEvent[]): Proposal[] {
+  const fromTools = (toolEvents ?? [])
+    .filter(e => e.toolName === 'proposeShifts' && (e.result as Record<string, unknown>)?.proposalId)
+    .map((e, i) => ({
+      proposalId: String((e.result as Record<string, unknown>).proposalId),
+      label: `Review Option ${i + 1} — ${(e.result as Record<string, unknown>).optimizeFor === 'coverage' ? 'Better Coverage' : 'Better for Staff'}`,
+    }))
+  if (fromTools.length > 0) return fromTools
+
+  // Fallback: parse text markers
   const proposals: Proposal[] = []
   const regex = /\[Review Option (\d+)\]\s*proposalId:\s*([a-zA-Z0-9_-]+)/g
   let match
@@ -92,13 +169,11 @@ function stripProposalMarkers(text: string): string {
   return text.replace(/\[Review Option \d+\]\s*proposalId:\s*[a-zA-Z0-9_-]+/g, '').trim()
 }
 
-export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDrawerProps) {
+export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setMessages, threadId }: AskPulseDrawerProps) {
   const [input, setInput] = useState('')
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
   const [streaming, setStreaming] = useState(false)
-  const threadIdRef = useRef<string>(generateThreadId())
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -109,11 +184,7 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDraw
       return () => clearTimeout(t)
     } else {
       setVisible(false)
-      const t = setTimeout(() => {
-        setMounted(false)
-        setMessages([])
-        threadIdRef.current = generateThreadId()
-      }, 250)
+      const t = setTimeout(() => setMounted(false), 250)
       return () => clearTimeout(t)
     }
   }, [open])
@@ -139,7 +210,7 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDraw
       const res = await fetch('/api/shift-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, threadId: threadIdRef.current }),
+        body: JSON.stringify({ message: userMsg, threadId }),
         signal: abortRef.current.signal,
       })
 
@@ -175,6 +246,12 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDraw
                 const event: ToolEvent = { ...pendingToolCall as ToolEvent, result: data.result }
                 toolEvents.push(event)
                 pendingToolCall = null
+                setMessages(prev => [
+                  ...prev.slice(0, -1),
+                  { role: 'assistant', content: assistantContent, toolEvents: [...toolEvents] },
+                ])
+              } else if (currentEvent === 'error') {
+                assistantContent = `Error: ${data.message ?? 'Something went wrong.'}`
                 setMessages(prev => [
                   ...prev.slice(0, -1),
                   { role: 'assistant', content: assistantContent, toolEvents: [...toolEvents] },
@@ -253,7 +330,7 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDraw
         ) : (
           <div className="flex flex-col gap-3 p-4">
             {messages.map((msg, i) => {
-              const proposals = msg.role === 'assistant' ? extractProposals(msg.content) : []
+              const proposals = msg.role === 'assistant' ? extractProposals(msg.content, msg.toolEvents) : []
               const displayContent = msg.role === 'assistant' ? stripProposalMarkers(msg.content) : msg.content
 
               return (
@@ -297,6 +374,10 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal }: AskPulseDraw
                       </span>
                     ) : null}
                   </div>
+                  {msg.role === 'assistant' && msg.toolEvents?.map((e, i) => {
+                    const Renderer = TOOL_UI_RENDERERS[e.toolName]
+                    return Renderer ? <Renderer key={i} result={e.result} /> : null
+                  })}
                   {proposals.length > 0 && (
                     <div className="flex flex-col gap-1 w-full max-w-[85%]">
                       {proposals.map(p => (

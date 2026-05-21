@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X, CheckCircle, XCircle, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface Assignment {
   staffId: string
@@ -22,7 +21,6 @@ interface ScoreResult {
   overall: number
   coverage: number
   individual: { average: number; byStaff: StaffScoreDetail[] }
-  equity: number
   warnings: Array<{ rule: string; staffId: string; detail: string }>
 }
 
@@ -154,7 +152,7 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
           </button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center py-12 text-[#6a6a6a] text-sm">Loading proposal...</div>
           )}
@@ -168,11 +166,10 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
               {/* Scores */}
               <div>
                 <p className="text-xs font-semibold text-[#222222] mb-3 uppercase tracking-wide">Schedule Scores</p>
-                <div className="grid grid-cols-4 gap-2 p-3 bg-[#f7f7f7] rounded-xl">
+                <div className="grid grid-cols-3 gap-2 p-3 bg-[#f7f7f7] rounded-xl">
                   <ScoreBadge label="Overall" value={proposal.scores.overall} />
                   <ScoreBadge label="Coverage" value={proposal.scores.coverage} />
                   <ScoreBadge label="Individual" value={proposal.scores.individual.average} />
-                  <ScoreBadge label="Equity" value={proposal.scores.equity} />
                 </div>
               </div>
 
@@ -242,7 +239,7 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
               )}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Footer */}
         {proposal && (

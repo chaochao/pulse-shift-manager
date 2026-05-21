@@ -9,6 +9,7 @@ import { AnalyticsPage } from '@/pulse/pages/AnalyticsPage'
 import { PatientsPage } from '@/pulse/pages/PatientsPage'
 import { StaffPage } from '@/pulse/pages/StaffPage'
 import { StaffDetailPage } from '@/pulse/pages/StaffDetailPage'
+import { SettingsPage } from '@/pulse/pages/SettingsPage'
 import { Toaster } from 'sonner'
 import './styles.css'
 
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="patients" element={<PatientsPage />} />
             <Route path="staff" element={<StaffPage />} />
             <Route path="staff/:id" element={<StaffDetailPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -56,21 +56,33 @@ router.post('/', async (req, res: import('express').Response) => {
       if (chunk.type === 'text-delta') {
         res.write(`event: delta\ndata: ${JSON.stringify({ text: chunk.payload.text })}\n\n`)
       } else if (chunk.type === 'tool-call') {
+        console.log(`[shift-agent] tool-call: ${chunk.payload.toolName}`, JSON.stringify(chunk.payload.args).slice(0, 200))
         res.write(`event: tool-call\ndata: ${JSON.stringify({
           toolName: chunk.payload.toolName,
           args: chunk.payload.args,
         })}\n\n`)
       } else if (chunk.type === 'tool-result') {
+        const result = chunk.payload.result
+        const resultStr = JSON.stringify(result)
+        const isError = result && typeof result === 'object' && 'error' in result
+        if (isError) {
+          console.error(`[shift-agent] tool-error: ${chunk.payload.toolName}`, result)
+        } else {
+          console.log(`[shift-agent] tool-result: ${chunk.payload.toolName} (${resultStr.length} chars)`)
+        }
         res.write(`event: tool-result\ndata: ${JSON.stringify({
           toolName: chunk.payload.toolName,
-          result: chunk.payload.result,
+          result,
         })}\n\n`)
+      } else if (chunk.type === 'error') {
+        console.error(`[shift-agent] stream error:`, chunk.payload)
       }
     }
 
     res.write(`event: done\ndata: {}\n\n`)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`[shift-agent] fatal error (streamStarted=${streamStarted}):`, err)
     if (streamStarted) {
       res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`)
     } else {

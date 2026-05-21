@@ -133,6 +133,24 @@ router.delete('/patients/:id', async (req, res) => {
   }
 })
 
+router.put('/departments/:id', async (req, res) => {
+  try {
+    const { minStaffDay, minStaffNight, maxStaffDay, maxStaffNight } = req.body
+    const dept = await prisma.department.update({
+      where: { id: req.params.id },
+      data: {
+        minStaffDay: Number(minStaffDay),
+        minStaffNight: Number(minStaffNight),
+        maxStaffDay: Number(maxStaffDay),
+        maxStaffNight: Number(maxStaffNight),
+      },
+    })
+    res.json(dept)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
 router.get('/rules', async (_req, res) => {
   try {
     const rules = await prisma.schedulingRule.findFirst()

@@ -38,7 +38,7 @@ export const scoreScheduleTool = createTool({
       minRestAfterStretchHours: rulesRow.minRestAfterStretchHours,
     }
 
-    return compute({
+    const full = compute({
       shifts: shifts as ScoringShift[],
       staff: staff as ScoringStaff[],
       departments: departments as ScoringDepartment[],
@@ -46,5 +46,13 @@ export const scoreScheduleTool = createTool({
       rules,
       dateRange: { start, end },
     })
+
+    return {
+      overall: full.overall,
+      coverage: full.coverage,
+      individual: full.individual.average,
+      warnings: full.warnings.slice(0, 5),
+      violations: full.violations,
+    }
   },
 })
