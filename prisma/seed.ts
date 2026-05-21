@@ -18,11 +18,11 @@ async function main() {
   await prisma.schedulingRule.deleteMany()
 
   const [icu, ed, surgery, cardiology, general] = await Promise.all([
-    prisma.department.create({ data: { name: 'ICU', color: '#4f86c6', minStaffDay: 4, minStaffEvening: 4, minStaffNight: 3, maxStaffDay: 8, maxStaffEvening: 8, maxStaffNight: 6, nursePatientRatio: 2, requiredCertifications: 'ICU,ACLS' } }),
-    prisma.department.create({ data: { name: 'Emergency', color: '#e05c5c', minStaffDay: 5, minStaffEvening: 5, minStaffNight: 4, maxStaffDay: 10, maxStaffEvening: 10, maxStaffNight: 8, nursePatientRatio: 4, requiredCertifications: 'ACLS,TNCC' } }),
-    prisma.department.create({ data: { name: 'Surgery', color: '#56b08b', minStaffDay: 3, minStaffEvening: 2, minStaffNight: 1, maxStaffDay: 8, maxStaffEvening: 6, maxStaffNight: 4, nursePatientRatio: 3, requiredCertifications: 'OR,ACLS' } }),
-    prisma.department.create({ data: { name: 'Cardiology', color: '#9b59b6', minStaffDay: 3, minStaffEvening: 3, minStaffNight: 2, maxStaffDay: 7, maxStaffEvening: 7, maxStaffNight: 5, nursePatientRatio: 3, requiredCertifications: 'ACLS' } }),
-    prisma.department.create({ data: { name: 'General', color: '#f39c12', minStaffDay: 4, minStaffEvening: 4, minStaffNight: 3, maxStaffDay: 10, maxStaffEvening: 10, maxStaffNight: 8, nursePatientRatio: 5, requiredCertifications: '' } }),
+    prisma.department.create({ data: { name: 'ICU', color: '#4f86c6', minStaffDay: 4, minStaffNight: 3, maxStaffDay: 8, maxStaffNight: 6, nursePatientRatio: 2, requiredCertifications: 'ICU,ACLS' } }),
+    prisma.department.create({ data: { name: 'Emergency', color: '#e05c5c', minStaffDay: 5, minStaffNight: 4, maxStaffDay: 10, maxStaffNight: 8, nursePatientRatio: 4, requiredCertifications: 'ACLS,TNCC' } }),
+    prisma.department.create({ data: { name: 'Surgery', color: '#56b08b', minStaffDay: 3, minStaffNight: 1, maxStaffDay: 8, maxStaffNight: 4, nursePatientRatio: 3, requiredCertifications: 'OR,ACLS' } }),
+    prisma.department.create({ data: { name: 'Cardiology', color: '#9b59b6', minStaffDay: 3, minStaffNight: 2, maxStaffDay: 7, maxStaffNight: 5, nursePatientRatio: 3, requiredCertifications: 'ACLS' } }),
+    prisma.department.create({ data: { name: 'General', color: '#f39c12', minStaffDay: 4, minStaffNight: 3, maxStaffDay: 10, maxStaffNight: 8, nursePatientRatio: 5, requiredCertifications: '' } }),
   ])
 
   const staffRows = [

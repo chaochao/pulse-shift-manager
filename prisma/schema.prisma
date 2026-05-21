@@ -11,10 +11,8 @@ model Department {
   name                   String
   color                  String
   minStaffDay            Int             @default(0)
-  minStaffEvening        Int             @default(0)
   minStaffNight          Int             @default(0)
   maxStaffDay            Int             @default(0)
-  maxStaffEvening        Int             @default(0)
   maxStaffNight          Int             @default(0)
   nursePatientRatio      Float           @default(4)
   requiredCertifications String          @default("")
@@ -103,8 +101,22 @@ model SickCall {
 
 model SchedulingRule {
   id                        String @id @default(cuid())
-  minRestHoursBetweenShifts Int    @default(11)
+  minRestHoursBetweenShifts Int    @default(12)
   maxNightShiftsPerMonth    Int    @default(8)
   maxShiftsPerWeek          Int    @default(5)
   maxHoursPerWeek           Int    @default(60)
+  overtimeCeilingPct        Int    @default(10)
+  nightLoadBufferPct        Int    @default(80)
+  minRestAfterStretchHours  Int    @default(48)
+}
+
+model ShiftProposal {
+  id          String   @id @default(cuid())
+  optimizeFor String
+  assignments String
+  scores      String
+  warnings    String
+  status      String   @default("pending")
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }

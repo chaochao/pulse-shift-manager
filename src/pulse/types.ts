@@ -7,10 +7,8 @@ export interface Department {
   name: string
   color: string
   minStaffDay: number
-  minStaffEvening: number
   minStaffNight: number
   maxStaffDay: number
-  maxStaffEvening: number
   maxStaffNight: number
   nursePatientRatio: number
   requiredCertifications: string
