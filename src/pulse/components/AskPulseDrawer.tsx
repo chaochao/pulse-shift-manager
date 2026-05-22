@@ -400,6 +400,16 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
                           h3: ({ children }) => <h3 className="font-semibold text-[#222222] mb-1 mt-2">{children}</h3>,
                           h2: ({ children }) => <h2 className="font-semibold text-[#222222] mb-1 mt-2">{children}</h2>,
                           code: ({ children }) => <code className="bg-[#e8e8e8] px-1 rounded text-[11px] font-mono">{children}</code>,
+                          table: ({ children }) => (
+                            <div className="my-2 rounded-lg border border-[#dddddd] overflow-hidden">
+                              <table className="w-full border-collapse text-[11px]">{children}</table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-[#f7f7f7]">{children}</thead>,
+                          tbody: ({ children }) => <tbody>{children}</tbody>,
+                          tr: ({ children }) => <tr className="border-b border-[#ebebeb] last:border-0">{children}</tr>,
+                          th: ({ children }) => <th className="text-left px-2.5 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">{children}</th>,
+                          td: ({ children }) => <td className="px-2.5 py-1.5 text-[#222222]">{children}</td>,
                         }}
                       >
                         {displayContent}
