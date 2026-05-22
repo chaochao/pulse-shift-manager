@@ -65,7 +65,7 @@ function ScoreBadge({ label, value, delta }: { label: string; value: number; del
         {tooltip && (
           <>
             <Info size={10} className="text-[#aaaaaa] cursor-default" />
-            <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 hidden group-hover:block w-48 rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2">
+            <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 hidden group-hover:block w-48 rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2">
               <p className="text-[11px] text-[#444444] leading-relaxed">{tooltip}</p>
             </div>
           </>
