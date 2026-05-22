@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { format, isSameMonth } from 'date-fns'
-import { ChevronLeft, ChevronRight, Plus, Pencil, Sun, Moon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Pencil, Sun, Moon, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -17,6 +17,7 @@ import { ShiftCard } from './ShiftCard'
 import { ShiftDialog } from './ShiftDialog'
 import { useShifts } from '@/pulse/hooks/useShifts'
 import { useDepartments } from '@/pulse/hooks/useDepartments'
+import { useDeleteShift } from '@/pulse/hooks/useShiftMutations'
 import type { Shift, Department, ViewMode } from '@/pulse/types'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -186,6 +187,10 @@ export function CalendarGrid() {
         shifts={listShifts}
         onEdit={openShiftFromList}
         onClose={() => setListShifts(null)}
+        onDeleted={id => setListShifts(prev => {
+          const next = prev ? prev.filter(s => s.id !== id) : null
+          return next && next.length > 0 ? next : null
+        })}
       />
     </div>
   )
@@ -351,15 +356,31 @@ function WeekBody({
 }
 
 function ShiftListDialog({
-  shifts, onEdit, onClose
+  shifts, onEdit, onClose, onDeleted
 }: {
   shifts: Shift[] | null
   onEdit: (shift: Shift) => void
   onClose: () => void
+  onDeleted: (id: string) => void
 }) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const deleteShift = useDeleteShift()
+
   if (!shifts) return null
   const dept = shifts[0]?.department
   const date = shifts[0] ? format(new Date(shifts[0].date), 'MMM d, yyyy') : ''
+
+  async function handleDelete(shift: Shift) {
+    await deleteShift.mutateAsync({
+      id: shift.id,
+      staffName: shift.staff.name,
+      deptName: shift.department.name,
+      date: shift.date,
+      type: shift.type,
+    })
+    setConfirmId(null)
+    onDeleted(shift.id)
+  }
 
   return (
     <Dialog open={!!shifts} onOpenChange={onClose}>
@@ -386,9 +407,26 @@ function ShiftListDialog({
                   </p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => onEdit(shift)}>
-                <Pencil size={12} /> Edit
-              </Button>
+              {confirmId === shift.id ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-[#6a6a6a]">Delete?</span>
+                  <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => handleDelete(shift)} disabled={deleteShift.isPending}>
+                    Yes
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmId(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => onEdit(shift)}>
+                    <Pencil size={12} /> Edit
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-red-500 hover:text-red-600 hover:border-red-200" onClick={() => setConfirmId(shift.id)}>
+                    <Trash2 size={12} /> Delete
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
