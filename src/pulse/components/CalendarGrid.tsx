@@ -46,26 +46,23 @@ export function CalendarGrid() {
   const byDateDept = groupByDateAndDept(shifts)
   const byDateTypeDept = groupByDateTypeDept(shifts)
 
-  // Compute gap detail per day: total count + per-dept breakdown
-  type GapInfo = { total: number; details: { name: string; count: number }[] }
+  // Compute gap detail per day: total count + per-dept day/night breakdown
+  type GapInfo = { total: number; details: { name: string; day: number; night: number }[] }
   const gapsByDate: Record<string, GapInfo> = {}
   const cursor = new Date(start)
   while (cursor <= end) {
     const key = formatDateKey(cursor)
-    const details: { name: string; count: number }[] = []
+    const details: { name: string; day: number; night: number }[] = []
     for (const dept of departments) {
-      let deptGaps = 0
-      for (const type of ['day', 'night'] as const) {
-        const required = type === 'day' ? dept.minStaffDay : dept.minStaffNight
-        if (required === 0) continue
-        const scheduled = shifts.filter(s =>
-          s.date.slice(0, 10) === key && s.departmentId === dept.id && s.type === type && s.status !== 'absent'
-        ).length
-        if (scheduled < required) deptGaps++
-      }
-      if (deptGaps > 0) details.push({ name: dept.name, count: deptGaps })
+      const dayGap = Math.max(0, dept.minStaffDay - shifts.filter(s =>
+        s.date.slice(0, 10) === key && s.departmentId === dept.id && s.type === 'day' && s.status !== 'absent'
+      ).length)
+      const nightGap = Math.max(0, dept.minStaffNight - shifts.filter(s =>
+        s.date.slice(0, 10) === key && s.departmentId === dept.id && s.type === 'night' && s.status !== 'absent'
+      ).length)
+      if (dayGap > 0 || nightGap > 0) details.push({ name: dept.name, day: dayGap, night: nightGap })
     }
-    if (details.length > 0) gapsByDate[key] = { total: details.reduce((s, d) => s + d.count, 0), details }
+    if (details.length > 0) gapsByDate[key] = { total: details.reduce((s, d) => s + d.day + d.night, 0), details }
     cursor.setDate(cursor.getDate() + 1)
   }
 
@@ -196,7 +193,7 @@ export function CalendarGrid() {
   )
 }
 
-type GapInfo = { total: number; details: { name: string; count: number }[] }
+type GapInfo = { total: number; details: { name: string; day: number; night: number }[] }
 
 function gapDotColor(info: GapInfo | undefined): string | null {
   if (!info) return null
@@ -247,12 +244,16 @@ function MonthBody({
                   return (
                     <div className="relative group/gap">
                       <div className={`w-1.5 h-1.5 rounded-full ${c}`} />
-                      <div className="pointer-events-none absolute left-0 top-4 z-30 hidden group-hover/gap:block w-max max-w-[180px] rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2.5">
+                      <div className="pointer-events-none absolute left-0 top-4 z-30 hidden group-hover/gap:block w-max max-w-[200px] rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2.5">
                         <p className="text-[11px] font-semibold text-[#222222] mb-1.5">{info.total} gap{info.total !== 1 ? 's' : ''}</p>
                         {info.details.map(d => (
-                          <p key={d.name} className="text-[11px] text-[#6a6a6a] flex justify-between gap-4">
-                            <span>{d.name}</span><span className="font-medium text-[#222222]">{d.count}</span>
-                          </p>
+                          <div key={d.name} className="flex items-center justify-between gap-4 text-[11px] text-[#6a6a6a]">
+                            <span>{d.name}</span>
+                            <span className="flex items-center gap-1.5 font-medium text-[#222222]">
+                              {d.day > 0 && <span className="flex items-center gap-0.5"><span className="text-[#f59e0b]">☀</span>{d.day}</span>}
+                              {d.night > 0 && <span className="flex items-center gap-0.5"><span className="text-[#6366f1]">☽</span>{d.night}</span>}
+                            </span>
+                          </div>
                         ))}
                       </div>
                     </div>
