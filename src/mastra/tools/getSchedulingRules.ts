@@ -8,7 +8,15 @@ export const getSchedulingRules = createTool({
   inputSchema: z.object({}),
   execute: async () => {
     try {
-    const rules = await prisma.schedulingRule.findFirst()
+    const rules = await prisma.schedulingRule.findFirst({
+      select: {
+        minRestHoursBetweenShifts: true,
+        maxNightShiftsPerMonth: true,
+        maxShiftsPerWeek: true,
+        maxHoursPerWeek: true,
+        minRestAfterStretchHours: true,
+      }
+    })
     if (!rules) throw new Error('No scheduling rules found. Run the seed script first.')
     return rules
     } catch (err) {

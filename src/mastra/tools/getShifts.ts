@@ -17,7 +17,17 @@ export const getShifts = createTool({
         ...(departmentId ? { departmentId } : {}),
         date: { gte: new Date(startDate), lte: new Date(endDate) },
       },
-      include: { staff: true, department: true },
+      select: {
+        id: true,
+        date: true,
+        type: true,
+        hours: true,
+        status: true,
+        staffId: true,
+        departmentId: true,
+        staff: { select: { name: true, role: true } },
+        department: { select: { name: true } },
+      },
       orderBy: { date: 'asc' },
     })
     return shifts
