@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, CheckCircle, XCircle, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { X, CheckCircle, XCircle, AlertTriangle, TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -49,11 +49,28 @@ interface ShiftProposalModalProps {
   onConfirmed: () => void
 }
 
+const SCORE_TOOLTIPS: Record<string, string> = {
+  Overall: 'Weighted combination of Coverage (60%) and Individual (40%). Higher is better.',
+  Coverage: 'How well this schedule meets minimum staffing requirements across all departments and shifts. 100 = every shift fully staffed.',
+  Individual: 'Average wellbeing score for the assigned staff. Considers rest time, shift preferences, and consecutive shift load. 100 = ideal conditions.',
+}
+
 function ScoreBadge({ label, value, delta }: { label: string; value: number; delta?: number }) {
   const color = value >= 85 ? 'text-green-600' : value >= 70 ? 'text-amber-500' : 'text-red-500'
+  const tooltip = SCORE_TOOLTIPS[label]
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] text-[#6a6a6a] font-medium uppercase tracking-wide">{label}</span>
+      <div className="relative group flex items-center gap-1">
+        <span className="text-[10px] text-[#6a6a6a] font-medium uppercase tracking-wide">{label}</span>
+        {tooltip && (
+          <>
+            <Info size={10} className="text-[#aaaaaa] cursor-default" />
+            <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 hidden group-hover:block w-48 rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2">
+              <p className="text-[11px] text-[#444444] leading-relaxed">{tooltip}</p>
+            </div>
+          </>
+        )}
+      </div>
       <span className={`text-lg font-bold ${color}`}>{value}</span>
       {delta !== undefined && (
         <span className={`text-[10px] flex items-center gap-0.5 ${delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
