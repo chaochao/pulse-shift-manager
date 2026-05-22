@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, differenceInDays } from 'date-fns'
-import { Sun, Moon, ChevronUp, ChevronDown, Flame, AlertTriangle } from 'lucide-react'
+import { Sun, Moon, ChevronUp, ChevronDown, Flame } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useShifts } from '@/pulse/hooks/useShifts'
 import { useStaff } from '@/pulse/hooks/useStaff'
@@ -160,9 +160,6 @@ export function AnalyticsPage() {
           <DeptPieChart title="Staff by Department" data={staffByDept} />
         </div>
 
-        {/* Overloaded staff */}
-        <OverloadedStaffTable rows={rows} maxHoursForPeriod={maxHoursForPeriod} />
-
         {/* Staff shift table */}
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-3">
@@ -253,81 +250,6 @@ export function AnalyticsPage() {
           </table>
         </div>
       </div>
-    </div>
-  )
-}
-
-type Row = { staff: { id: string; name: string; role: string }; dept: { name: string; color: string } | undefined; total: number; day: number; night: number; hours: number; streak: number }
-
-function OverloadedStaffTable({ rows, maxHoursForPeriod }: { rows: Row[]; maxHoursForPeriod: number }) {
-  const flagged = rows.filter(r => r.hours > maxHoursForPeriod || r.streak >= 5)
-  if (flagged.length === 0) return null
-
-  return (
-    <div className="px-6 py-4 border-b border-[#ebebeb]">
-      <div className="flex items-center gap-2 mb-3">
-        <AlertTriangle size={13} className="text-[#f97316]" />
-        <p className="text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Overloaded Staff</p>
-        <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 font-semibold">{flagged.length}</span>
-      </div>
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="border-b border-[#ebebeb]">
-            <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Staff</th>
-            <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Role</th>
-            <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Department</th>
-            <th className="text-right py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Hours</th>
-            <th className="text-right py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">
-              <span className="inline-flex items-center justify-end gap-1 w-full"><Flame size={11} className="text-[#f97316]" />Consec. Days</span>
-            </th>
-            <th className="text-left py-2 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Issues</th>
-          </tr>
-        </thead>
-        <tbody>
-          {flagged.map(({ staff, dept, hours, streak }) => {
-            const overHours = hours > maxHoursForPeriod
-            const highStreak = streak >= 5
-            return (
-              <tr key={staff.id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors">
-                <td className="py-2.5 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: dept?.color ?? '#ccc' }} />
-                    <Link to={`/pulse/staff/${staff.id}`} className="text-[#222222] font-medium hover:text-[#4f86c6] hover:underline transition-colors">
-                      {staff.name}
-                    </Link>
-                  </div>
-                </td>
-                <td className="py-2.5 pr-4 text-[#6a6a6a]">{staff.role}</td>
-                <td className="py-2.5 pr-4">
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${dept?.color}18`, color: dept?.color }}>
-                    {dept?.name ?? '—'}
-                  </span>
-                </td>
-                <td className={`py-2.5 pr-4 text-right font-medium ${overHours ? 'text-red-600' : 'text-[#6a6a6a]'}`}>
-                  {hours}h
-                  {overHours && <span className="ml-1 text-[10px] text-red-400">(+{hours - maxHoursForPeriod}h)</span>}
-                </td>
-                <td className="py-2.5 pr-4 text-right">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${highStreak ? 'text-[#f97316]' : 'text-[#6a6a6a]'}`}>
-                    {highStreak && <Flame size={11} className="text-[#f97316]" />}
-                    {streak > 0 ? `${streak}d` : '—'}
-                  </span>
-                </td>
-                <td className="py-2.5">
-                  <div className="flex gap-1.5 flex-wrap">
-                    {overHours && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-500 font-medium">Over hour limit</span>
-                    )}
-                    {highStreak && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-[#f97316] font-medium">{streak}+ consecutive days</span>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
     </div>
   )
 }
