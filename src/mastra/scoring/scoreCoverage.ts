@@ -52,7 +52,7 @@ export function scoreCoverage(input: ScoringInput): number {
         // Fill rate: if no shifts at all and min > 0, penalise
         const fillScore = min > 0 && count === 0 ? 0 : 100
 
-        scores.push((headcountScore * 0.35) + (certScore * 0.30) + (ratioScore * 0.25) + (fillScore * 0.10))
+        scores.push((headcountScore * 0.60) + (certScore * 0.20) + (ratioScore * 0.15) + (fillScore * 0.05))
       }
     }
   }
