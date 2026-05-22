@@ -65,15 +65,15 @@ function getDaysInRange(start: Date, end: Date): Date[] {
   const current = new Date(start)
   while (current <= end) {
     days.push(new Date(current))
-    current.setDate(current.getDate() + 1)
+    current.setUTCDate(current.getUTCDate() + 1)
   }
   return days
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+  return a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
 }
 
 function average(nums: number[]): number {
