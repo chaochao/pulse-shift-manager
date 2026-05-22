@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, differenceInDays } from 'date-fns'
 import { Sun, Moon, ChevronUp, ChevronDown, Flame } from 'lucide-react'
@@ -303,9 +303,32 @@ export function AnalyticsPage() {
   )
 }
 
+function useCountUp(target: number, duration = 900): number {
+  const [display, setDisplay] = useState(0)
+  const rafRef = useRef<number>(0)
+  const startRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    startRef.current = null
+    const tick = (ts: number) => {
+      if (startRef.current === null) startRef.current = ts
+      const p = Math.min((ts - startRef.current) / duration, 1)
+      const eased = 1 - (1 - p) ** 3
+      setDisplay(Math.round(eased * target))
+      if (p < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [target, duration])
+
+  return display
+}
+
 function CoverageCard({ score, filled, total, weekStart, weekEnd }: {
   score: number; filled: number; total: number; weekStart: Date; weekEnd: Date
 }) {
+  const animScore = useCountUp(score)
+  const animFilled = useCountUp(filled)
   const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626'
   const bg = score >= 80 ? '#f0fdf4' : score >= 60 ? '#fffbeb' : '#fef2f2'
   const border = score >= 80 ? '#bbf7d0' : score >= 60 ? '#fde68a' : '#fecaca'
@@ -316,18 +339,18 @@ function CoverageCard({ score, filled, total, weekStart, weekEnd }: {
       <div className="flex-none">
         <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color }}> Week Coverage</p>
         <div className="flex items-end gap-1">
-          <span className="text-3xl font-bold leading-none" style={{ color }}>{score}</span>
+          <span className="text-3xl font-bold leading-none" style={{ color }}>{animScore}</span>
           <span className="text-sm font-medium mb-0.5" style={{ color, opacity: 0.5 }}>/100</span>
         </div>
       </div>
       <div className="w-px self-stretch" style={{ backgroundColor: color, opacity: 0.15 }} />
       <div className="flex-none">
-        <p className="text-xs font-medium" style={{ color }}>{filled} of {total} slots filled</p>
+        <p className="text-xs font-medium" style={{ color }}>{animFilled} of {total} slots filled</p>
         <p className="text-[11px] mt-0.5" style={{ color, opacity: 0.6 }}>{weekLabel}</p>
       </div>
       <div className="flex-1 min-w-0">
         <div className="h-2 rounded-full w-full" style={{ backgroundColor: trackBg }}>
-          <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${score}%`, backgroundColor: color }} />
+          <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${animScore}%`, backgroundColor: color }} />
         </div>
       </div>
     </div>
@@ -335,9 +358,10 @@ function CoverageCard({ score, filled, total, weekStart, weekEnd }: {
 }
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  const animated = useCountUp(value)
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[#ebebeb] bg-white">
-      <span className="text-2xl font-semibold" style={{ color }}>{value}</span>
+      <span className="text-2xl font-semibold" style={{ color }}>{animated}</span>
       <span className="text-xs text-[#6a6a6a]">{label}</span>
     </div>
   )
