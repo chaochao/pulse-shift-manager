@@ -52,7 +52,7 @@ interface ShiftProposalModalProps {
 
 const SCORE_TOOLTIPS: Record<string, string> = {
   Overall: 'Weighted combination of Coverage (60%) and Individual (40%). Higher is better.',
-  Coverage: 'How well the schedule covers the requested period. Gap fill rate — what fraction of minimum required slots are filled (60%), certification coverage (20%), nurse-patient ratio (15%), headcount (5%). 100 = all minimum slots filled.',
+  Coverage: 'Percentage of required minimum slots that are filled in the period. e.g. 33 filled out of 70 required slots = 47. 100 = every required slot is staffed.',
   Individual: 'Average wellbeing score across all staff in the full schedule — not just the staff in this proposal. Staff Impact below shows the score for each assigned person individually.',
 }
 
