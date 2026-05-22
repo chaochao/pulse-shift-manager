@@ -198,22 +198,7 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
 
           {proposal && !loading && (
             <div className="p-5 flex flex-col gap-5">
-              {/* Scores */}
-              <div>
-                <div className="flex items-baseline justify-between mb-3">
-                  <p className="text-xs font-semibold text-[#222222] uppercase tracking-wide">Schedule Scores</p>
-                  {proposal.scores.dateRange && (
-                    <p className="text-[10px] text-[#6a6a6a]">
-                      {fmtDate(proposal.scores.dateRange.start)} — {fmtDate(proposal.scores.dateRange.end)}
-                    </p>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2 p-3 bg-[#f7f7f7] rounded-xl">
-                  <ScoreBadge label="Overall" value={proposal.scores.overall} />
-                  <ScoreBadge label="Coverage" value={proposal.scores.coverage} />
-                  <ScoreBadge label="Individual" value={proposal.scores.individual.average} />
-                </div>
-              </div>
+              {/* Scores hidden — scoring system under revision */}
 
               {/* Warnings — only for staff in this proposal */}
               {(() => {
@@ -263,27 +248,7 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
                 </div>
               </div>
 
-              {/* Per-staff scores */}
-              {proposal.scores.individual.byStaff.filter(s =>
-                proposal.assignments.some(a => a.staffId === s.staffId)
-              ).length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-[#222222] mb-1 uppercase tracking-wide">Staff Impact</p>
-                  <p className="text-[10px] text-[#6a6a6a] mb-2">Wellbeing score for each assigned staff member</p>
-                  <div className="flex flex-col gap-1.5">
-                    {proposal.scores.individual.byStaff
-                      .filter(s => proposal.assignments.some(a => a.staffId === s.staffId))
-                      .map(s => (
-                        <div key={s.staffId} className="flex items-center gap-3 p-2.5 bg-[#f7f7f7] rounded-lg">
-                          <span className="text-xs font-medium text-[#222222] flex-1">{s.name}</span>
-                          <span className={`text-xs font-bold ${s.score >= 85 ? 'text-green-600' : s.score >= 70 ? 'text-amber-500' : 'text-red-500'}`}>
-                            {s.score}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+              {/* Staff Impact hidden — scoring system under revision */}
             </div>
           )}
         </div>
