@@ -47,7 +47,7 @@ interface ShiftProposalModalProps {
   proposalId: string
   label: string
   onClose: () => void
-  onConfirmed: () => void
+  onConfirmed: (dates: string[]) => void
 }
 
 const SCORE_TOOLTIPS: Record<string, string> = {
@@ -142,7 +142,8 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
         const count = data.confirmedCount ?? assignments.length
         toast.success(`${count} shift${count !== 1 ? 's' : ''} confirmed and added to the schedule`)
       }
-      onConfirmed()
+      const dates = (proposal?.assignments ?? []).map(a => a.date.slice(0, 10))
+      onConfirmed([...new Set(dates)])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Confirmation failed')
       setConfirming(false)

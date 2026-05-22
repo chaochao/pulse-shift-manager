@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useHighlight } from '@/pulse/context/HighlightContext'
 import { format, isSameMonth } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus, Pencil, Sun, Moon, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ export function CalendarGrid() {
   const { data: shifts = [] } = useShifts(start, end)
   const { data: departments = [] } = useDepartments()
 
+  const { highlightDates } = useHighlight()
   const deptMap = Object.fromEntries(departments.map((d) => [d.id, d]))
   const byDateDept = groupByDateAndDept(shifts)
   const byDateTypeDept = groupByDateTypeDept(shifts)
@@ -156,6 +158,7 @@ export function CalendarGrid() {
             byDateDept={byDateDept}
             deptMap={deptMap}
             gapsByDate={gapsByDate}
+            highlightDates={highlightDates}
             onCellClick={openCreate}
             onShiftClick={openCardClick}
           />
@@ -165,6 +168,7 @@ export function CalendarGrid() {
             byDateTypeDept={byDateTypeDept}
             deptMap={deptMap}
             gapsByDate={gapsByDate}
+            highlightDates={highlightDates}
             onCellClick={openCreate}
             onShiftClick={openCardClick}
           />
@@ -202,12 +206,13 @@ function gapDotColor(info: GapInfo | undefined): string | null {
 }
 
 function MonthBody({
-  currentDate, byDateDept, deptMap, gapsByDate, onCellClick, onShiftClick
+  currentDate, byDateDept, deptMap, gapsByDate, highlightDates, onCellClick, onShiftClick
 }: {
   currentDate: Date
   byDateDept: Record<string, Record<string, Shift[]>>
   deptMap: Record<string, Department>
   gapsByDate: Record<string, GapInfo>
+  highlightDates: Set<string>
   onCellClick: (d: Date) => void
   onShiftClick: (shifts: Shift[], e: React.MouseEvent) => void
 }) {
@@ -224,8 +229,9 @@ function MonthBody({
           <div
             key={i}
             className={cn(
-              'group h-[140px] border-b border-r border-[#ebebeb] transition-colors flex flex-col',
+              'group h-[140px] border-b border-r border-[#ebebeb] transition-[background-color,box-shadow] duration-500 flex flex-col',
               inMonth ? 'bg-white hover:bg-[#fafafa]' : 'bg-[#fafafa]',
+              highlightDates.has(key) && 'bg-[#eff6ff] shadow-[inset_0_0_0_2px_#4f86c6,0_4px_20px_rgba(79,134,198,0.3)]',
             )}
           >
             <div className="px-2 pt-2 flex-none flex items-center justify-between">
@@ -294,12 +300,13 @@ function MonthBody({
 }
 
 function WeekBody({
-  currentDate, byDateTypeDept, deptMap, gapsByDate, onCellClick, onShiftClick
+  currentDate, byDateTypeDept, deptMap, gapsByDate, highlightDates, onCellClick, onShiftClick
 }: {
   currentDate: Date
   byDateTypeDept: Record<string, Record<string, Record<string, Shift[]>>>
   deptMap: Record<string, Department>
   gapsByDate: Record<string, GapInfo>
+  highlightDates: Set<string>
   onCellClick: (d: Date) => void
   onShiftClick: (shifts: Shift[], e: React.MouseEvent) => void
 }) {
@@ -320,7 +327,10 @@ function WeekBody({
             return (
               <div
                 key={i}
-                className="group min-h-[100px] border-b border-r border-[#ebebeb] px-2 pb-2 pt-7 hover:bg-[#fafafa] transition-colors relative"
+                className={cn(
+                  'group min-h-[100px] border-b border-r border-[#ebebeb] px-2 pb-2 pt-7 hover:bg-[#fafafa] transition-[background-color,box-shadow] duration-500 relative',
+                  highlightDates.has(key) && 'bg-[#eff6ff] shadow-[inset_0_0_0_2px_#4f86c6,0_4px_20px_rgba(79,134,198,0.3)]',
+                )}
               >
                 <div className="absolute top-1.5 right-1.5">
                   <div className="relative">

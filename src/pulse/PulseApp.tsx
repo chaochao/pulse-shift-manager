@@ -11,15 +11,17 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './components/Sidebar'
 import { AskPulseDrawer } from './components/AskPulseDrawer'
 import { ShiftProposalModal } from './components/ShiftProposalModal'
+import { HighlightProvider, useHighlight } from './context/HighlightContext'
 import type { Message } from './components/AskPulseDrawer'
 
-export function PulseApp() {
+function PulseAppInner() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [proposal, setProposal] = useState<{ id: string; label: string } | null>(null)
   const [chatMessages, setChatMessages] = useState<Message[]>([])
   const threadIdRef = useRef<string>(generateThreadId())
   const location = useLocation()
   const queryClient = useQueryClient()
+  const { addHighlight } = useHighlight()
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
@@ -42,12 +44,21 @@ export function PulseApp() {
           proposalId={proposal.id}
           label={proposal.label}
           onClose={() => setProposal(null)}
-          onConfirmed={() => {
+          onConfirmed={(dates) => {
             setProposal(null)
             queryClient.invalidateQueries({ queryKey: ['shifts'] })
+            addHighlight(dates)
           }}
         />
       )}
     </div>
+  )
+}
+
+export function PulseApp() {
+  return (
+    <HighlightProvider>
+      <PulseAppInner />
+    </HighlightProvider>
   )
 }
