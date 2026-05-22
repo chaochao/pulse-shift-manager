@@ -2,6 +2,7 @@ node_modules
 dist
 .mastra
 .env
-storage.db
-pulse.db
+*.db
+*.db-shm
+*.db-wal
 .worktrees
