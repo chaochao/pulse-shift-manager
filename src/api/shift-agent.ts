@@ -42,7 +42,26 @@ router.post('/', async (req, res: import('express').Response) => {
     streamStarted = true
 
     const now = new Date()
-    const dateContext = `[System context: Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Current time is ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}. Use this as the reference point for all date-related queries like "this week", "today", "next week", etc.]`
+    const todayISO = now.toISOString().slice(0, 10)
+
+    // Week = Monday to Sunday
+    const dow = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+    const daysFromMon = (dow + 6) % 7
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - daysFromMon)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+    const weekStartISO = weekStart.toISOString().slice(0, 10)
+    const weekEndISO = weekEnd.toISOString().slice(0, 10)
+
+    const nextWeekStart = new Date(weekStart)
+    nextWeekStart.setDate(weekStart.getDate() + 7)
+    const nextWeekEnd = new Date(weekEnd)
+    nextWeekEnd.setDate(weekEnd.getDate() + 7)
+    const nextWeekStartISO = nextWeekStart.toISOString().slice(0, 10)
+    const nextWeekEndISO = nextWeekEnd.toISOString().slice(0, 10)
+
+    const dateContext = `[System context: Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${todayISO}). Weeks run Monday–Sunday. This week = ${weekStartISO} to ${weekEndISO}. Next week = ${nextWeekStartISO} to ${nextWeekEndISO}. Always use these exact ISO dates when calling tools for relative periods like "this week" or "next week".]`
 
     const stream = await shiftAgent.stream(
       [{ role: 'user', content: `${dateContext}\n\n${message}` }],
