@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from './prisma'
 import { scoreSchedule } from '../scoring'
 import type { ScoringShift, ScoringStaff, ScoringDepartment, ScoringPatient, ScoringRules } from '../scoring'
-import { startOfDayUTC, endOfDayUTC, toLocalDateStr } from './dateUtils'
+import { startOfDayUTC, endOfDayUTC, toLocalDateStr, currentWeekUTC } from './dateUtils'
 
 export const recommendShifts = createTool({
   id: 'recommendShifts',
@@ -177,10 +177,15 @@ export const recommendShifts = createTool({
       return { error: reason }
     }
 
-    // Score the full proposed schedule
+    // Score the current week (Mon–Sun), including proposed assignments that fall within it
+    const { start: weekStart, end: weekEnd, startStr: weekStartStr, endStr: weekEndStr } = currentWeekUTC(timezone)
+    const weekExisting = allHistoricShifts.filter(s =>
+      new Date(s.date) >= weekStart && new Date(s.date) <= weekEnd && s.status !== 'absent'
+    )
+    const weekProposed = assignments.filter(a => new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd)
     const proposedShifts: ScoringShift[] = [
-      ...existingShifts,
-      ...assignments.map(a => ({
+      ...weekExisting,
+      ...weekProposed.map(a => ({
         id: 'proposed' as string,
         staffId: a.staffId,
         departmentId: a.departmentId,
@@ -207,14 +212,14 @@ export const recommendShifts = createTool({
       departments: departments as ScoringDepartment[],
       patients: patients as ScoringPatient[],
       rules,
-      dateRange: { start, end: endOfDayUTC(endDate, timezone) },
+      dateRange: { start: weekStart, end: weekEnd },
     })
 
     const proposal = await prisma.shiftProposal.create({
       data: {
         optimizeFor: 'coverage',
         assignments: JSON.stringify(assignments),
-        scores: JSON.stringify({ ...scores, dateRange: { start: startDate, end: endDate } }),
+        scores: JSON.stringify({ ...scores, dateRange: { start: weekStartStr, end: weekEndStr } }),
         warnings: JSON.stringify(scores.warnings.slice(0, 10)),
         status: 'pending',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),

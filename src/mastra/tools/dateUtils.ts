@@ -27,3 +27,17 @@ export function toLocalDateStr(date: Date, timezone: string): string {
 export function formatLocalDate(date: Date, timezone: string, fmt = 'EEE, MMM d'): string {
   return format(toZonedTime(date, timezone), fmt, { timeZone: timezone })
 }
+
+/** Return UTC start/end boundaries for the current Mon–Sun week in the hospital's timezone */
+export function currentWeekUTC(timezone: string): { start: Date; end: Date; startStr: string; endStr: string } {
+  const todayStr = format(toZonedTime(new Date(), timezone), 'yyyy-MM-dd', { timeZone: timezone })
+  const [y, m, d] = todayStr.split('-').map(Number)
+  const local = new Date(y, m - 1, d)
+  const daysFromMon = (local.getDay() + 6) % 7
+  const mon = new Date(local); mon.setDate(d - daysFromMon)
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const startStr = `${mon.getFullYear()}-${pad(mon.getMonth() + 1)}-${pad(mon.getDate())}`
+  const endStr = `${sun.getFullYear()}-${pad(sun.getMonth() + 1)}-${pad(sun.getDate())}`
+  return { start: startOfDayUTC(startStr, timezone), end: endOfDayUTC(endStr, timezone), startStr, endStr }
+}

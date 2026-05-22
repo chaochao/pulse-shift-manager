@@ -38,6 +38,46 @@ export function AnalyticsPage() {
   const { data: departments = [] } = useDepartments()
   const { data: patients = [] } = usePatients()
 
+  // Current Mon–Sun week for coverage score
+  const weekStart = useMemo(() => {
+    const d = new Date()
+    const mon = new Date(d)
+    mon.setDate(d.getDate() - (d.getDay() + 6) % 7)
+    mon.setHours(0, 0, 0, 0)
+    return mon
+  }, [])
+  const weekEnd = useMemo(() => {
+    const d = new Date(weekStart)
+    d.setDate(weekStart.getDate() + 6)
+    d.setHours(23, 59, 59, 999)
+    return d
+  }, [weekStart])
+  const { data: weekShifts = [] } = useShifts(weekStart, weekEnd)
+
+  const { coverage, filledSlots, totalSlots } = useMemo(() => {
+    let total = 0, filled = 0
+    const cursor = new Date(weekStart)
+    while (cursor <= weekEnd) {
+      const key = format(cursor, 'yyyy-MM-dd')
+      for (const dept of departments) {
+        for (const type of ['day', 'night'] as const) {
+          const min = type === 'day' ? dept.minStaffDay : dept.minStaffNight
+          if (min === 0) continue
+          const count = weekShifts.filter(s =>
+            s.departmentId === dept.id &&
+            s.date.slice(0, 10) === key &&
+            s.type === type &&
+            s.status !== 'absent'
+          ).length
+          total++
+          if (count >= min) filled++
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return { coverage: total === 0 ? 100 : Math.round(filled / total * 100), filledSlots: filled, totalSlots: total }
+  }, [weekShifts, departments, weekStart, weekEnd])
+
   function handleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -111,35 +151,8 @@ export function AnalyticsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[#dddddd] flex-none">
+      <div className="flex items-center px-6 py-3 border-b border-[#dddddd] flex-none">
         <h1 className="text-lg font-semibold text-[#222222]">Analytics</h1>
-        <div className="flex items-center gap-3">
-          <select
-            value={deptFilter}
-            onChange={e => setDeptFilter(e.target.value)}
-            className="h-7 text-xs border border-[#dddddd] rounded-md px-2 text-[#222222] bg-white focus:outline-none focus:border-[#aaaaaa]"
-          >
-            <option value="">All departments</option>
-            {departments.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="h-7 border border-[#dddddd] rounded-md px-2 text-[#222222] text-xs bg-white focus:outline-none focus:border-[#aaaaaa]"
-            />
-            <span className="text-xs text-[#6a6a6a]">—</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="h-7 border border-[#dddddd] rounded-md px-2 text-[#222222] text-xs bg-white focus:outline-none focus:border-[#aaaaaa]"
-            />
-          </div>
-        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -153,18 +166,54 @@ export function AnalyticsPage() {
             <StatCard label="Total Staff" value={allStaff.length} color="#6366f1" />
           </div>
 
-          {/* Patients pie */}
-          <DeptPieChart title="Patients by Department" data={patientsByDept} />
-
-          {/* Staff pie */}
-          <DeptPieChart title="Staff by Department" data={staffByDept} />
+          {/* Pies + coverage card */}
+          <div className="flex-1 flex flex-col gap-4 min-w-0">
+            <div className="flex gap-6">
+              <DeptPieChart title="Patients by Department" data={patientsByDept} />
+              <DeptPieChart title="Staff by Department" data={staffByDept} />
+            </div>
+            <CoverageCard
+              score={coverage}
+              filled={filledSlots}
+              total={totalSlots}
+              weekStart={weekStart}
+              weekEnd={weekEnd}
+            />
+          </div>
         </div>
 
         {/* Staff shift table */}
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Staff Shift Summary</p>
-            <p className="text-xs text-[#aaaaaa]">Max {MAX_HOURS_PER_WEEK}h/week · {maxHoursForPeriod}h limit for this period</p>
+            <div className="flex items-center gap-3">
+              <select
+                value={deptFilter}
+                onChange={e => setDeptFilter(e.target.value)}
+                className="h-7 text-xs border border-[#dddddd] rounded-md px-2 text-[#222222] bg-white focus:outline-none focus:border-[#aaaaaa]"
+              >
+                <option value="">All departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="h-7 border border-[#dddddd] rounded-md px-2 text-[#222222] text-xs bg-white focus:outline-none focus:border-[#aaaaaa]"
+                />
+                <span className="text-xs text-[#6a6a6a]">—</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="h-7 border border-[#dddddd] rounded-md px-2 text-[#222222] text-xs bg-white focus:outline-none focus:border-[#aaaaaa]"
+                />
+              </div>
+              <p className="text-xs text-[#aaaaaa]">Max {MAX_HOURS_PER_WEEK}h/week · {maxHoursForPeriod}h limit</p>
+            </div>
           </div>
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -248,6 +297,37 @@ export function AnalyticsPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CoverageCard({ score, filled, total, weekStart, weekEnd }: {
+  score: number; filled: number; total: number; weekStart: Date; weekEnd: Date
+}) {
+  const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626'
+  const bg = score >= 80 ? '#f0fdf4' : score >= 60 ? '#fffbeb' : '#fef2f2'
+  const border = score >= 80 ? '#bbf7d0' : score >= 60 ? '#fde68a' : '#fecaca'
+  const trackBg = score >= 80 ? '#dcfce7' : score >= 60 ? '#fef3c7' : '#fee2e2'
+  const weekLabel = `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`
+  return (
+    <div className="flex items-center gap-6 px-5 py-3.5 rounded-xl border" style={{ backgroundColor: bg, borderColor: border }}>
+      <div className="flex-none">
+        <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color }}> Week Coverage</p>
+        <div className="flex items-end gap-1">
+          <span className="text-3xl font-bold leading-none" style={{ color }}>{score}</span>
+          <span className="text-sm font-medium mb-0.5" style={{ color, opacity: 0.5 }}>/100</span>
+        </div>
+      </div>
+      <div className="w-px self-stretch" style={{ backgroundColor: color, opacity: 0.15 }} />
+      <div className="flex-none">
+        <p className="text-xs font-medium" style={{ color }}>{filled} of {total} slots filled</p>
+        <p className="text-[11px] mt-0.5" style={{ color, opacity: 0.6 }}>{weekLabel}</p>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="h-2 rounded-full w-full" style={{ backgroundColor: trackBg }}>
+          <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${score}%`, backgroundColor: color }} />
         </div>
       </div>
     </div>

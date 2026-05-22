@@ -3,28 +3,30 @@ import { z } from 'zod'
 import { prisma } from './prisma'
 import { scoreSchedule as compute } from '../scoring'
 import type { ScoringShift, ScoringStaff, ScoringDepartment, ScoringPatient, ScoringRules } from '../scoring'
+import { currentWeekUTC } from './dateUtils'
 
 export const scoreScheduleTool = createTool({
   id: 'scoreSchedule',
-  description: 'Score the current schedule for a date range using the three-dimensional scoring framework: Coverage (A), Individual (B), and Equity (C). Returns overall score, breakdown, and warnings.',
+  description: 'Score the current week (Mon–Sun) schedule hospital-wide. Coverage = filled slots ÷ required slots × 100 for the current week. Optionally scope to a single department.',
   inputSchema: z.object({
     departmentId: z.string().optional().describe('Scope to a single department, or omit for hospital-wide'),
-    startDate: z.string().describe('Start date ISO string'),
-    endDate: z.string().describe('End date ISO string'),
   }),
-  execute: async ({ departmentId, startDate, endDate }) => {
+  execute: async ({ departmentId }) => {
     try {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const [rulesRow, hospitalSettings] = await Promise.all([
+      prisma.schedulingRule.findFirst(),
+      prisma.hospitalSettings.findFirst(),
+    ])
+    const timezone = hospitalSettings?.timezone ?? 'America/Los_Angeles'
+    const { start, end, startStr, endStr } = currentWeekUTC(timezone)
 
-    const [shifts, staff, departments, patients, rulesRow] = await Promise.all([
+    const [shifts, staff, departments, patients] = await Promise.all([
       prisma.shift.findMany({
         where: { ...(departmentId ? { departmentId } : {}), date: { gte: start, lte: end } },
       }),
       prisma.staff.findMany({ where: departmentId ? { departmentId } : undefined }),
       prisma.department.findMany({ where: departmentId ? { id: departmentId } : undefined }),
       prisma.patient.findMany({ where: { ...(departmentId ? { departmentId } : {}), status: 'admitted' } }),
-      prisma.schedulingRule.findFirst(),
     ])
 
     if (!rulesRow) throw new Error('No scheduling rules found.')
@@ -54,6 +56,7 @@ export const scoreScheduleTool = createTool({
       individual: full.individual.average,
       warnings: full.warnings.slice(0, 5),
       violations: full.violations,
+      dateRange: { start: startStr, end: endStr },
     }
     } catch (err) {
       console.error('[scoreSchedule] error:', err)

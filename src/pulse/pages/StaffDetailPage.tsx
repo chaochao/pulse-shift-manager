@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns'
-import { ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sun, Moon, BadgeCheck, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { getMonthGrid, formatDateKey, formatMonthYear, navigateMonth, isToday } from '@/pulse/lib/calendarUtils'
@@ -113,6 +113,30 @@ export function StaffDetailPage() {
             >Calendar</button>
           </div>
         </div>
+      </div>
+
+      {/* Profile info */}
+      <div className="flex items-center gap-6 px-6 py-3 border-b border-[#ebebeb] flex-none flex-wrap">
+        <InfoPill label="Role" value={staff.role} />
+        <InfoPill
+          label="Preferred Shift"
+          value={staff.preferredShift === 'day' ? 'Day' : staff.preferredShift === 'night' ? 'Night' : staff.preferredShift}
+          icon={staff.preferredShift === 'day' ? <Sun size={12} className="text-[#f59e0b]" /> : <Moon size={12} className="text-[#6366f1]" />}
+        />
+        <InfoPill label="Contract" value={`${staff.contractHoursPerWeek}h / week`} icon={<Clock size={12} className="text-[#6a6a6a]" />} />
+        {staff.certifications && (
+          <div className="flex items-center gap-2">
+            <BadgeCheck size={13} className="text-[#4f86c6] flex-none" />
+            <span className="text-xs text-[#6a6a6a]">Certifications</span>
+            <div className="flex gap-1 flex-wrap">
+              {staff.certifications.split(',').map(c => c.trim()).filter(Boolean).map(cert => (
+                <span key={cert} className="text-[11px] px-2 py-0.5 rounded-full bg-[#eff6ff] text-[#4f86c6] font-medium border border-[#bfdbfe]">
+                  {cert}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -262,7 +286,7 @@ function CalendarView({ staffShifts, calendarDate, onNavigate, onShiftClick }: {
                   <button
                     key={shift.id}
                     onClick={() => onShiftClick(shift)}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium text-left hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium text-left cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${shift.department.color}18`, color: shift.department.color }}
                   >
                     {shift.type === 'day'
@@ -277,6 +301,16 @@ function CalendarView({ staffShifts, calendarDate, onNavigate, onShiftClick }: {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function InfoPill({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-xs text-[#6a6a6a]">{label}</span>
+      <span className="text-xs font-medium text-[#222222]">{value}</span>
     </div>
   )
 }
