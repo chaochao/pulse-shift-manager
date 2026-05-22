@@ -49,10 +49,10 @@ export function scoreCoverage(input: ScoringInput): number {
           ratioScore = count >= required ? 100 : Math.max(0, (count / required) * 100)
         }
 
-        // Fill rate: if no shifts at all and min > 0, penalise
-        const fillScore = min > 0 && count === 0 ? 0 : 100
+        // Fill rate: what fraction of required minimum slots are filled (0–100)
+        const fillScore = min > 0 ? Math.min(count / min, 1) * 100 : 100
 
-        scores.push((headcountScore * 0.60) + (certScore * 0.20) + (ratioScore * 0.15) + (fillScore * 0.05))
+        scores.push((fillScore * 0.60) + (certScore * 0.20) + (ratioScore * 0.15) + (headcountScore * 0.05))
       }
     }
   }
