@@ -51,7 +51,7 @@ interface ShiftProposalModalProps {
 
 const SCORE_TOOLTIPS: Record<string, string> = {
   Overall: 'Weighted combination of Coverage (60%) and Individual (40%). Higher is better.',
-  Coverage: 'How well this schedule meets minimum staffing requirements across all departments and shifts. 100 = every shift fully staffed.',
+  Coverage: 'How well the schedule covers the requested period across all departments. Scores headcount vs minimum (35%), certification coverage (30%), nurse-patient ratio (25%), and fill rate (10%). 100 = fully staffed.',
   Individual: 'Average wellbeing score across all staff in the full schedule — not just the staff in this proposal. Staff Impact below shows the score for each assigned person individually.',
 }
 
