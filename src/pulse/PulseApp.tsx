@@ -24,15 +24,15 @@ export function PulseApp() {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       <Sidebar onAskPulse={() => setDrawerOpen(d => !d)} drawerOpen={drawerOpen} />
+      <AskPulseDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onReviewProposal={(id, label) => setProposal({ id, label })}
+        messages={chatMessages}
+        setMessages={setChatMessages}
+        threadId={threadIdRef.current}
+      />
       <main className="flex-1 overflow-hidden relative flex flex-col">
-        <AskPulseDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onReviewProposal={(id, label) => setProposal({ id, label })}
-          messages={chatMessages}
-          setMessages={setChatMessages}
-          threadId={threadIdRef.current}
-        />
         <div key={location.pathname} className="animate-in fade-in duration-200 flex-1 overflow-hidden flex flex-col">
           <Outlet />
         </div>

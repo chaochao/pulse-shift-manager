@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
+function fmtShiftDate(iso: string) {
+  return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function useCreateShift() {
   const qc = useQueryClient()
   return useMutation({
@@ -21,7 +25,7 @@ export function useCreateShift() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
-      toast.success(`Shift created — ${data.staff.name}, ${data.department.name}`)
+      toast.success(`Shift created — ${data.staff.name}, ${data.department.name}, ${data.type} shift, ${fmtShiftDate(data.date)}`)
     },
     onError: () => toast.error('Failed to create shift')
   })
@@ -43,7 +47,7 @@ export function useUpdateShift() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
-      toast.info(`Shift updated — ${data.staff.name}, ${data.department.name}`)
+      toast.info(`Shift updated — ${data.staff.name}, ${data.department.name}, ${data.type} shift, ${fmtShiftDate(data.date)}`)
     },
     onError: () => toast.error('Failed to update shift')
   })
@@ -52,14 +56,14 @@ export function useUpdateShift() {
 export function useDeleteShift() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id }: { id: string; staffName: string; deptName: string }) => {
+    mutationFn: async ({ id }: { id: string; staffName: string; deptName: string; date: string; type: string }) => {
       const res = await fetch(`/api/pulse/shifts/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete shift')
       return res.json()
     },
-    onSuccess: (_, { staffName, deptName }) => {
+    onSuccess: (_, { staffName, deptName, date, type }) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
-      toast.error(`Shift deleted — ${staffName}, ${deptName}`)
+      toast.error(`Shift deleted — ${staffName}, ${deptName}, ${type} shift, ${fmtShiftDate(date)}`)
     },
     onError: () => toast.error('Failed to delete shift')
   })

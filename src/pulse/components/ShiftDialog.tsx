@@ -72,7 +72,7 @@ export function ShiftDialog({ open, date, shift, departments, onClose, onBack }:
 
   async function handleDelete() {
     if (!shift) return
-    await deleteShift.mutateAsync({ id: shift.id, staffName: shift.staff.name, deptName: shift.department.name })
+    await deleteShift.mutateAsync({ id: shift.id, staffName: shift.staff.name, deptName: shift.department.name, date: shift.date, type: shift.type })
     onClose()
   }
 

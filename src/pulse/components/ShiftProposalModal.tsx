@@ -113,8 +113,17 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Confirmation failed')
-      const count = data.confirmedCount ?? proposal?.assignments.length ?? 0
-      toast.success(`${count} shift${count !== 1 ? 's' : ''} confirmed and added to the schedule`)
+      const assignments = proposal?.assignments ?? []
+      if (assignments.length === 1) {
+        const a = assignments[0]
+        const name = staffMap[a.staffId]?.name ?? a.staffId
+        const dept = deptMap[a.departmentId]?.name ?? a.departmentId
+        const date = formatDate(a.date)
+        toast.success(`${name} — ${dept} ${a.type} shift confirmed (${date})`)
+      } else {
+        const count = data.confirmedCount ?? assignments.length
+        toast.success(`${count} shift${count !== 1 ? 's' : ''} confirmed and added to the schedule`)
+      }
       onConfirmed()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Confirmation failed')
@@ -176,20 +185,24 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
                 </div>
               </div>
 
-              {/* Warnings */}
-              {proposal.warnings.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-[#222222] mb-2 uppercase tracking-wide">Warnings</p>
-                  <div className="flex flex-col gap-1.5">
-                    {proposal.warnings.map((w, i) => (
-                      <div key={i} className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                        <AlertTriangle size={12} className="text-amber-500 mt-0.5 flex-none" />
-                        <span className="text-xs text-amber-800">{w.detail}</span>
-                      </div>
-                    ))}
+              {/* Warnings — only for staff in this proposal */}
+              {(() => {
+                const assignedIds = new Set(proposal.assignments.map(a => a.staffId))
+                const relevant = proposal.warnings.filter(w => assignedIds.has(w.staffId))
+                return relevant.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold text-[#222222] mb-2 uppercase tracking-wide">Warnings</p>
+                    <div className="flex flex-col gap-1.5">
+                      {relevant.map((w, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                          <AlertTriangle size={12} className="text-amber-500 mt-0.5 flex-none" />
+                          <span className="text-xs text-amber-800">{w.detail}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : null
+              })()}
 
               {/* Proposed assignments */}
               <div>

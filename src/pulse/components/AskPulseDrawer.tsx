@@ -318,7 +318,7 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
 
   return (
     <div
-      className={`absolute left-0 top-0 h-full bg-white border-r border-[#dddddd] shadow-xl z-10 flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] shadow-xl z-40 flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : '-translate-x-full'}`}
       style={{ width: drawerWidth }}
     >
       {/* Drag handle */}

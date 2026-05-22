@@ -1,8 +1,7 @@
 import type { ScoringInput, StaffScoreDetail } from './types'
 
-// Score B: Individual Staff Score (0-100 per staff member)
-// Measures rest compliance, hours alignment, preferences, consecutive limits
-export function scoreB(input: ScoringInput): { average: number; byStaff: StaffScoreDetail[] } {
+// Wellbeing Score (0-100 per staff member): rest compliance, preferences, consecutive limits
+export function scoreWellbeing(input: ScoringInput): { average: number; byStaff: StaffScoreDetail[] } {
   const { shifts, staff, rules, dateRange } = input
 
   const byStaff: StaffScoreDetail[] = staff.map(member => {
@@ -47,24 +46,6 @@ export function scoreB(input: ScoringInput): { average: number; byStaff: StaffSc
     }
     scores.push(consecutiveScore)
 
-    // 3. Hours alignment: actual hours vs contract hours per week
-    const weeksInRange = Math.max(1, Math.ceil(
-      (dateRange.end.getTime() - dateRange.start.getTime()) / (7 * 864e5)
-    ))
-    const totalHours = memberShifts.reduce((sum, s) => sum + s.hours, 0)
-    const targetHours = member.contractHoursPerWeek * weeksInRange
-    const hoursRatio = targetHours > 0 ? totalHours / targetHours : 1
-    const hoursScore = Math.max(0, 100 - Math.abs(1 - hoursRatio) * 100)
-    if (hoursRatio > 1.1) flags.push(`Over contracted hours: ${totalHours}h vs ${targetHours}h target`)
-    if (hoursRatio < 0.9) flags.push(`Under contracted hours: ${totalHours}h vs ${targetHours}h target`)
-    scores.push(hoursScore)
-
-    // 4. Overtime ceiling: overtime < overtimeCeilingPct% of contract hours per week
-    const overtimeCeiling = (rules.overtimeCeilingPct / 100) * member.contractHoursPerWeek * weeksInRange
-    const overtime = Math.max(0, totalHours - targetHours)
-    const overtimeScore = overtime <= overtimeCeiling ? 100 : Math.max(0, 100 - ((overtime - overtimeCeiling) / overtimeCeiling) * 100)
-    if (overtime > overtimeCeiling) flags.push(`Overtime ${overtime}h exceeds ${Math.round(overtimeCeiling)}h ceiling`)
-    scores.push(overtimeScore)
 
     // 5. Shift preference alignment
     let preferenceScore = 100

@@ -45,6 +45,29 @@ export function CalendarGrid() {
   const byDateDept = groupByDateAndDept(shifts)
   const byDateTypeDept = groupByDateTypeDept(shifts)
 
+  // Compute gap detail per day: total count + per-dept breakdown
+  type GapInfo = { total: number; details: { name: string; count: number }[] }
+  const gapsByDate: Record<string, GapInfo> = {}
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    const key = formatDateKey(cursor)
+    const details: { name: string; count: number }[] = []
+    for (const dept of departments) {
+      let deptGaps = 0
+      for (const type of ['day', 'night'] as const) {
+        const required = type === 'day' ? dept.minStaffDay : dept.minStaffNight
+        if (required === 0) continue
+        const scheduled = shifts.filter(s =>
+          s.date.slice(0, 10) === key && s.departmentId === dept.id && s.type === type && s.status !== 'absent'
+        ).length
+        if (scheduled < required) deptGaps++
+      }
+      if (deptGaps > 0) details.push({ name: dept.name, count: deptGaps })
+    }
+    if (details.length > 0) gapsByDate[key] = { total: details.reduce((s, d) => s + d.count, 0), details }
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
   function openCreate(date: Date) {
     setSelectedDate(date)
     setEditingShift(null)
@@ -134,6 +157,7 @@ export function CalendarGrid() {
             currentDate={currentDate}
             byDateDept={byDateDept}
             deptMap={deptMap}
+            gapsByDate={gapsByDate}
             onCellClick={openCreate}
             onShiftClick={openCardClick}
           />
@@ -142,6 +166,7 @@ export function CalendarGrid() {
             currentDate={currentDate}
             byDateTypeDept={byDateTypeDept}
             deptMap={deptMap}
+            gapsByDate={gapsByDate}
             onCellClick={openCreate}
             onShiftClick={openCardClick}
           />
@@ -166,12 +191,21 @@ export function CalendarGrid() {
   )
 }
 
+type GapInfo = { total: number; details: { name: string; count: number }[] }
+
+function gapDotColor(info: GapInfo | undefined): string | null {
+  if (!info) return null
+  if (info.total >= 3) return 'bg-red-400'
+  return 'bg-amber-400'
+}
+
 function MonthBody({
-  currentDate, byDateDept, deptMap, onCellClick, onShiftClick
+  currentDate, byDateDept, deptMap, gapsByDate, onCellClick, onShiftClick
 }: {
   currentDate: Date
   byDateDept: Record<string, Record<string, Shift[]>>
   deptMap: Record<string, Department>
+  gapsByDate: Record<string, GapInfo>
   onCellClick: (d: Date) => void
   onShiftClick: (shifts: Shift[], e: React.MouseEvent) => void
 }) {
@@ -193,12 +227,32 @@ function MonthBody({
             )}
           >
             <div className="px-2 pt-2 flex-none flex items-center justify-between">
-              <div className={cn(
-                'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
-                isToday(day) ? 'bg-[#ff385c] text-white' :
-                inMonth ? 'text-[#222222]' : 'text-[#c1c1c1]'
-              )}>
-                {format(day, 'd')}
+              <div className="flex items-center gap-1">
+                <div className={cn(
+                  'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
+                  isToday(day) ? 'bg-[#ff385c] text-white' :
+                  inMonth ? 'text-[#222222]' : 'text-[#c1c1c1]'
+                )}>
+                  {format(day, 'd')}
+                </div>
+                {(() => {
+                  const info = gapsByDate[key]
+                  const c = gapDotColor(info)
+                  if (!c || !info) return null
+                  return (
+                    <div className="relative group/gap">
+                      <div className={`w-1.5 h-1.5 rounded-full ${c}`} />
+                      <div className="pointer-events-none absolute left-0 top-4 z-30 hidden group-hover/gap:block w-max max-w-[180px] rounded-xl bg-white border border-[#ebebeb] shadow-md px-3 py-2.5">
+                        <p className="text-[11px] font-semibold text-[#222222] mb-1.5">{info.total} gap{info.total !== 1 ? 's' : ''}</p>
+                        {info.details.map(d => (
+                          <p key={d.name} className="text-[11px] text-[#6a6a6a] flex justify-between gap-4">
+                            <span>{d.name}</span><span className="font-medium text-[#222222]">{d.count}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
               <div className="relative">
                 <button
@@ -234,11 +288,12 @@ function MonthBody({
 }
 
 function WeekBody({
-  currentDate, byDateTypeDept, deptMap, onCellClick, onShiftClick
+  currentDate, byDateTypeDept, deptMap, gapsByDate, onCellClick, onShiftClick
 }: {
   currentDate: Date
   byDateTypeDept: Record<string, Record<string, Record<string, Shift[]>>>
   deptMap: Record<string, Department>
+  gapsByDate: Record<string, GapInfo>
   onCellClick: (d: Date) => void
   onShiftClick: (shifts: Shift[], e: React.MouseEvent) => void
 }) {

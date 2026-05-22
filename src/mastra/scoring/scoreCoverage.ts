@@ -1,8 +1,7 @@
 import type { ScoringInput } from './types'
 
-// Score A: Hospital Coverage (0-100)
-// Measures staffing levels, certification coverage, patient ratio, fill rate
-export function scoreA(input: ScoringInput): number {
+// Coverage Score (0-100): staffing levels, certification coverage, patient ratio, fill rate
+export function scoreCoverage(input: ScoringInput): number {
   const { shifts, staff, departments, patients, dateRange } = input
 
   const days = getDaysInRange(dateRange.start, dateRange.end)
