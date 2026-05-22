@@ -296,7 +296,7 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
     abortRef.current = new AbortController()
     let assistantContent = ''
     const toolEvents: ToolEvent[] = []
-    let pendingToolCall: Partial<ToolEvent> | null = null
+    const pendingToolCalls: Partial<ToolEvent>[] = []
     setMessages(prev => [...prev, { role: 'assistant', content: '', toolEvents: [] }])
 
     try {
@@ -339,15 +339,17 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
                   { role: 'assistant', content: assistantContent, toolEvents: [...toolEvents] },
                 ])
               } else if (currentEvent === 'tool-call') {
-                pendingToolCall = { toolName: data.toolName, args: data.args }
-              } else if (currentEvent === 'tool-result' && pendingToolCall) {
-                const event: ToolEvent = { ...pendingToolCall as ToolEvent, result: data.result }
-                toolEvents.push(event)
-                pendingToolCall = null
-                setMessages(prev => [
-                  ...prev.slice(0, -1),
-                  { role: 'assistant', content: assistantContent, toolEvents: [...toolEvents] },
-                ])
+                pendingToolCalls.push({ toolName: data.toolName, args: data.args })
+              } else if (currentEvent === 'tool-result') {
+                const pending = pendingToolCalls.shift()
+                if (pending) {
+                  const event: ToolEvent = { ...pending as ToolEvent, result: data.result }
+                  toolEvents.push(event)
+                  setMessages(prev => [
+                    ...prev.slice(0, -1),
+                    { role: 'assistant', content: assistantContent, toolEvents: [...toolEvents] },
+                  ])
+                }
               } else if (currentEvent === 'error') {
                 assistantContent = `Error: ${data.message ?? 'Something went wrong.'}`
                 setMessages(prev => [
