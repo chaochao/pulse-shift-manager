@@ -140,9 +140,70 @@ function CoverageGapTable({ toolEvents }: { toolEvents: ToolEvent[] }) {
   )
 }
 
+interface OverloadedStaffRow {
+  staffId: string
+  name: string
+  department: string
+  role: string
+  hours: number
+  hoursLimit: number
+  consecutiveDays: number
+  maxConsecutive: number
+  issues: string[]
+}
+
+function OverloadedStaffTable({ result }: { result: unknown }) {
+  const data = result as { overloaded: OverloadedStaffRow[]; total: number; periodDays: number; hoursLimit: number }
+  if (!data?.overloaded?.length) return <p className="text-xs text-[#6a6a6a] mt-1">No overloaded staff found.</p>
+
+  return (
+    <div className="w-full mt-2 rounded-lg border border-[#dddddd] overflow-hidden text-[11px]">
+      <div className="px-2.5 py-1.5 bg-[#f7f7f7] border-b border-[#dddddd] flex items-center justify-between">
+        <span className="font-semibold text-[#222222]">Overloaded Staff</span>
+        <span className="text-[#6a6a6a]">{data.total} flagged · {data.periodDays}d · limit {data.hoursLimit}h</span>
+      </div>
+      <div className="max-h-56 overflow-y-auto">
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 bg-[#fafafa]">
+            <tr className="border-b border-[#ebebeb]">
+              <th className="text-left px-2.5 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Staff</th>
+              <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Dept</th>
+              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Hours</th>
+              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Consec.</th>
+              <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Issues</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.overloaded.map((row, i) => (
+              <tr key={i} className="border-b border-[#f5f5f5] last:border-0">
+                <td className="px-2.5 py-1.5 text-[#222222] font-medium">{row.name}</td>
+                <td className="px-2 py-1.5 text-[#6a6a6a]">{row.department}</td>
+                <td className="px-2 py-1.5 text-center">
+                  <span className={row.hours > row.hoursLimit ? 'text-red-600 font-semibold' : 'text-[#222222]'}>{row.hours}h</span>
+                </td>
+                <td className="px-2 py-1.5 text-center">
+                  <span className={row.consecutiveDays > row.maxConsecutive ? 'text-[#f97316] font-semibold' : 'text-[#222222]'}>{row.consecutiveDays}d</span>
+                </td>
+                <td className="px-2 py-1.5">
+                  <div className="flex flex-wrap gap-1">
+                    {row.issues.map((issue, j) => (
+                      <span key={j} className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 text-[10px] font-medium">{issue}</span>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // Registry: add an entry here to render a custom UI for a tool result
 const TOOL_UI_RENDERERS: Partial<Record<string, React.ComponentType<{ result: unknown }>>> = {
   getCoverageGaps: ({ result }) => <CoverageGapTable toolEvents={[{ toolName: 'getCoverageGaps', result }]} />,
+  getOverloadedStaff: ({ result }) => <OverloadedStaffTable result={result} />,
 }
 
 // Extract proposals from tool events (reliable) then fall back to text markers

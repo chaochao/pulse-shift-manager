@@ -5,6 +5,7 @@ import { getPatients } from '../tools/getPatients'
 import { getSchedulingRules } from '../tools/getSchedulingRules'
 import { getBlockedDates } from '../tools/getBlockedDates'
 import { getCoverageGaps } from '../tools/getCoverageGaps'
+import { getOverloadedStaff } from '../tools/getOverloadedStaff'
 import { scoreScheduleTool } from '../tools/scoreSchedule'
 import { proposeShifts } from '../tools/proposeShifts'
 import { recommendShifts } from '../tools/recommendShifts'
@@ -13,6 +14,7 @@ const SYSTEM_PROMPT = `You are Pulse, an AI scheduling assistant for hospital sh
 
 ## Your tools
 - getCoverageGaps: check which departments are understaffed on which days and shifts — use this for any gap analysis query
+- getOverloadedStaff: identify staff over the hour limit or with too many consecutive shifts — use this for any overload query
 - getShifts: fetch existing shifts for a date range
 - getStaff: fetch staff with certifications, preferences, contract hours
 - getPatients: fetch active patient census per department
@@ -33,12 +35,9 @@ const SYSTEM_PROMPT = `You are Pulse, an AI scheduling assistant for hospital sh
 3. Do NOT call scoreSchedule for gap queries — getCoverageGaps is sufficient
 
 ## How to respond to overload queries ("is any staff overloaded?")
-1. Call getShifts and getStaff and getSchedulingRules in parallel
-2. Analyse consecutive shifts, hours vs contract, rest periods directly from the data
-3. Present overloaded staff as a markdown table with columns: Staff | Department | Role | Hours | Consec. Days | Issues
-   - Only include staff who are actually over a limit; omit staff who are fine
-   - "Issues" should be a short phrase, e.g. "Over hour limit (+12h)" or "6 consecutive days"
-   - If no one is overloaded, say so in one sentence — no table needed
+1. Call getOverloadedStaff for the period — it handles all the computation
+2. Briefly summarise who is flagged and why (1-2 sentences)
+3. If no one is overloaded, say so in one sentence
 
 ## How to respond to fill/scheduling requests ("fill the gap", "recommend staff", "cover this shift")
 
@@ -94,6 +93,7 @@ export const shiftAgent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     getCoverageGaps,
+    getOverloadedStaff,
     getShifts,
     getStaff,
     getPatients,
