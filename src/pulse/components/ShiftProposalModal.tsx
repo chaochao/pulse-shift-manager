@@ -52,7 +52,7 @@ interface ShiftProposalModalProps {
 const SCORE_TOOLTIPS: Record<string, string> = {
   Overall: 'Weighted combination of Coverage (60%) and Individual (40%). Higher is better.',
   Coverage: 'How well this schedule meets minimum staffing requirements across all departments and shifts. 100 = every shift fully staffed.',
-  Individual: 'Average wellbeing score for the assigned staff. Considers rest time, shift preferences, and consecutive shift load. 100 = ideal conditions.',
+  Individual: 'Average wellbeing score across all staff in the full schedule — not just the staff in this proposal. Staff Impact below shows the score for each assigned person individually.',
 }
 
 function ScoreBadge({ label, value, delta }: { label: string; value: number; delta?: number }) {
@@ -255,7 +255,8 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
                 proposal.assignments.some(a => a.staffId === s.staffId)
               ).length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-[#222222] mb-2 uppercase tracking-wide">Staff Impact</p>
+                  <p className="text-xs font-semibold text-[#222222] mb-1 uppercase tracking-wide">Staff Impact</p>
+                  <p className="text-[10px] text-[#6a6a6a] mb-2">Wellbeing score for each assigned staff member</p>
                   <div className="flex flex-col gap-1.5">
                     {proposal.scores.individual.byStaff
                       .filter(s => proposal.assignments.some(a => a.staffId === s.staffId))
