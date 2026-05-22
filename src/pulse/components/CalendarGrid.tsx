@@ -195,7 +195,7 @@ type GapInfo = { total: number; details: { name: string; count: number }[] }
 
 function gapDotColor(info: GapInfo | undefined): string | null {
   if (!info) return null
-  if (info.total >= 3) return 'bg-red-400'
+  if (info.total > 5) return 'bg-red-400'
   return 'bg-amber-400'
 }
 

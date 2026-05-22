@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { getMonthGrid, formatDateKey, formatMonthYear, navigateMonth, isToday } from '@/pulse/lib/calendarUtils'
 import { useStaff } from '@/pulse/hooks/useStaff'
 import { useShifts } from '@/pulse/hooks/useShifts'
+import { useDepartments } from '@/pulse/hooks/useDepartments'
+import { ShiftDialog } from '@/pulse/components/ShiftDialog'
 import type { Shift } from '@/pulse/types'
 
 type View = 'list' | 'calendar'
@@ -21,12 +23,15 @@ export function StaffDetailPage() {
   const [endDate, setEndDate] = useState(format(endOfMonth(today), 'yyyy-MM-dd'))
   const [calendarDate, setCalendarDate] = useState(today)
   const [calendarVisible, setCalendarVisible] = useState(true)
+  const [editingShift, setEditingShift] = useState<Shift | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const apiStart = view === 'list' ? new Date(startDate) : startOfMonth(calendarDate)
-  const apiEnd   = view === 'list' ? new Date(endDate)   : endOfMonth(calendarDate)
+  const apiEnd   = view === 'list' ? new Date(`${endDate}T23:59:59`) : endOfMonth(calendarDate)
 
   const { data: allStaff = [] } = useStaff()
   const { data: shifts = [] } = useShifts(apiStart, apiEnd)
+  const { data: departments = [] } = useDepartments()
 
   const staff = allStaff.find(s => s.id === id)
 
@@ -130,9 +135,18 @@ export function StaffDetailPage() {
             staffShifts={staffShifts}
             calendarDate={calendarDate}
             onNavigate={fadeNavigate}
+            onShiftClick={shift => { setEditingShift(shift); setDialogOpen(true) }}
           />
         )}
       </div>
+
+      <ShiftDialog
+        open={dialogOpen}
+        date={editingShift ? new Date(editingShift.date) : null}
+        shift={editingShift}
+        departments={departments}
+        onClose={() => { setDialogOpen(false); setEditingShift(null) }}
+      />
     </div>
   )
 }
@@ -184,10 +198,11 @@ function ListView({ staffShifts }: { staffShifts: Shift[] }) {
   )
 }
 
-function CalendarView({ staffShifts, calendarDate, onNavigate }: {
+function CalendarView({ staffShifts, calendarDate, onNavigate, onShiftClick }: {
   staffShifts: Shift[]
   calendarDate: Date
   onNavigate: (dir: 'prev' | 'next') => void
+  onShiftClick: (shift: Shift) => void
 }) {
   const weeks = getMonthGrid(calendarDate)
   const byDate: Record<string, Shift[]> = {}
@@ -244,9 +259,10 @@ function CalendarView({ staffShifts, calendarDate, onNavigate }: {
               </div>
               <div className="flex flex-col gap-1">
                 {dayShifts.map(shift => (
-                  <div
+                  <button
                     key={shift.id}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium"
+                    onClick={() => onShiftClick(shift)}
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium text-left hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${shift.department.color}18`, color: shift.department.color }}
                   >
                     {shift.type === 'day'
@@ -254,7 +270,7 @@ function CalendarView({ staffShifts, calendarDate, onNavigate }: {
                       : <Moon size={10} className="flex-none text-[#6366f1]" />
                     }
                     <span className="truncate">{shift.type === 'day' ? 'Day' : 'Night'}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

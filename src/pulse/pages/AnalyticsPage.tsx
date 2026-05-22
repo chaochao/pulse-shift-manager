@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, differenceInDays } from 'date-fns'
 import { Sun, Moon, ChevronUp, ChevronDown, Flame } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -32,7 +33,7 @@ export function AnalyticsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('total')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  const { data: shifts = [] } = useShifts(new Date(startDate), new Date(endDate))
+  const { data: shifts = [] } = useShifts(new Date(startDate), new Date(`${endDate}T23:59:59`))
   const { data: allStaff = [] } = useStaff()
   const { data: departments = [] } = useDepartments()
   const { data: patients = [] } = usePatients()
@@ -204,7 +205,9 @@ export function AnalyticsPage() {
                   <td className="py-2.5 pr-4">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: dept?.color ?? '#ccc' }} />
-                      <span className="text-[#222222] font-medium">{staff.name}</span>
+                      <Link to={`/pulse/staff/${staff.id}`} className="text-[#222222] font-medium hover:text-[#4f86c6] hover:underline transition-colors">
+                        {staff.name}
+                      </Link>
                     </div>
                   </td>
                   <td className="py-2.5 pr-4 text-[#6a6a6a]">{staff.role}</td>
