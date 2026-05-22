@@ -300,10 +300,15 @@ export function AskPulseDrawer({ open, onClose, onReviewProposal, messages, setM
     setMessages(prev => [...prev, { role: 'assistant', content: '', toolEvents: [] }])
 
     try {
+      // Send full history so the model always has conversation context
+      const history = messages
+        .filter(m => m.content.trim())
+        .map(m => ({ role: m.role, content: m.content }))
+
       const res = await fetch('/api/shift-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, threadId }),
+        body: JSON.stringify({ message: userMsg, threadId, history }),
         signal: abortRef.current.signal,
       })
 

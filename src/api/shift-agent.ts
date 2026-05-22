@@ -12,6 +12,10 @@ const prisma = new PrismaClient({ adapter })
 const chatSchema = z.object({
   message: z.string().min(1),
   threadId: z.string().uuid(),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional(),
 })
 
 const confirmSchema = z.object({
@@ -28,7 +32,7 @@ router.post('/', async (req, res: import('express').Response) => {
   })
 
   try {
-    const { message, threadId } = chatSchema.parse(req.body)
+    const { message, threadId, history } = chatSchema.parse(req.body)
 
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is missing.')
@@ -63,8 +67,13 @@ router.post('/', async (req, res: import('express').Response) => {
 
     const dateContext = `[System context: Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${todayISO}). Weeks run Monday–Sunday. This week = ${weekStartISO} to ${weekEndISO}. Next week = ${nextWeekStartISO} to ${nextWeekEndISO}. Always use these exact ISO dates when calling tools for relative periods like "this week" or "next week".]`
 
+    const historyMessages = (history ?? []).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }))
+
     const stream = await shiftAgent.stream(
-      [{ role: 'user', content: `${dateContext}\n\n${message}` }],
+      [...historyMessages, { role: 'user', content: `${dateContext}\n\n${message}` }],
       {
         memory: { thread: threadId, resource: 'shift-manager', options: { lastMessages: 20 } },
         abortSignal: abortController.signal,
