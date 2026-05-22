@@ -214,7 +214,7 @@ export const recommendShifts = createTool({
       data: {
         optimizeFor: 'coverage',
         assignments: JSON.stringify(assignments),
-        scores: JSON.stringify(scores),
+        scores: JSON.stringify({ ...scores, dateRange: { start: startDate, end: endDate } }),
         warnings: JSON.stringify(scores.warnings.slice(0, 10)),
         status: 'pending',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),

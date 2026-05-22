@@ -23,6 +23,7 @@ interface ScoreResult {
   coverage: number
   individual: { average: number; byStaff: StaffScoreDetail[] }
   warnings: Array<{ rule: string; staffId: string; detail: string }>
+  dateRange?: { start: string; end: string }
 }
 
 interface Proposal {
@@ -162,6 +163,11 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   }
 
+  const fmtDate = (iso: string) => {
+    const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`)
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
@@ -194,7 +200,14 @@ export function ShiftProposalModal({ proposalId, label, onClose, onConfirmed }: 
             <div className="p-5 flex flex-col gap-5">
               {/* Scores */}
               <div>
-                <p className="text-xs font-semibold text-[#222222] mb-3 uppercase tracking-wide">Schedule Scores</p>
+                <div className="flex items-baseline justify-between mb-3">
+                  <p className="text-xs font-semibold text-[#222222] uppercase tracking-wide">Schedule Scores</p>
+                  {proposal.scores.dateRange && (
+                    <p className="text-[10px] text-[#6a6a6a]">
+                      {fmtDate(proposal.scores.dateRange.start)} — {fmtDate(proposal.scores.dateRange.end)}
+                    </p>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-2 p-3 bg-[#f7f7f7] rounded-xl">
                   <ScoreBadge label="Overall" value={proposal.scores.overall} />
                   <ScoreBadge label="Coverage" value={proposal.scores.coverage} />
