@@ -287,7 +287,7 @@ function MonthBody({
                     key={deptId}
                     department={dept}
                     shifts={depShifts}
-                    newestShiftId={newestShiftId}
+
                     onCardClick={onShiftClick}
                   />
                 )
@@ -354,7 +354,7 @@ function WeekBody({
                       key={deptId}
                       department={dept}
                       shifts={depShifts}
-                      newestShiftId={newestShiftId}
+  
                       onCardClick={onShiftClick}
                     />
                   )
