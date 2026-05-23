@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, BarChart2, Sparkles, Users, User, Settings } from 'lucide-react'
+import { Calendar, BarChart2, Sparkles, Users, User, Settings, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -36,6 +36,7 @@ export function Sidebar({ onAskPulse, drawerOpen }: SidebarProps) {
         {navItem('/pulse/patients', false, <Users size={16} />, 'Patients')}
         {navItem('/pulse/staff', false, <User size={16} />, 'Staff')}
         {navItem('/pulse/settings', false, <Settings size={16} />, 'Settings')}
+        {navItem('/pulse/qa', false, <HelpCircle size={16} />, 'Q&A')}
         <button
           onClick={onAskPulse}
           className={cn(

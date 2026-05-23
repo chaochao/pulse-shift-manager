@@ -47,6 +47,8 @@ export const recommendShifts = createTool({
     const assignments: Array<{ staffId: string; departmentId: string; date: string; type: 'day' | 'night'; hours: number }> = []
     const unfillable: Array<{ date: string; type: string; reason: string }> = []
 
+    const { start: weekStart, end: weekEnd, startStr: weekStartStr, endStr: weekEndStr } = currentWeekUTC(timezone)
+
     // Track who's been assigned per calendar day to prevent double-booking
     const assignedOnDay = new Map<string, Set<string>>()
 
@@ -138,8 +140,8 @@ export const recommendShifts = createTool({
               : 999
 
             const scheduledHours = [
-              ...allHistoricShifts.filter(s => s.staffId === staff.id),
-              ...assignments.filter(a => a.staffId === staff.id),
+              ...allHistoricShifts.filter(s => s.staffId === staff.id && new Date(s.date) >= weekStart && new Date(s.date) <= weekEnd),
+              ...assignments.filter(a => a.staffId === staff.id && new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd),
             ].reduce((sum, s) => sum + (('hours' in s ? (s as { hours: number }).hours : null) ?? 12), 0)
             const hoursHeadroom = Math.max(0, (staff.contractHoursPerWeek ?? 36) - scheduledHours)
 
@@ -178,7 +180,6 @@ export const recommendShifts = createTool({
     }
 
     // Score the current week (Mon–Sun), including proposed assignments that fall within it
-    const { start: weekStart, end: weekEnd, startStr: weekStartStr, endStr: weekEndStr } = currentWeekUTC(timezone)
     const weekExisting = allHistoricShifts.filter(s =>
       new Date(s.date) >= weekStart && new Date(s.date) <= weekEnd && s.status !== 'absent'
     )

@@ -152,9 +152,42 @@ interface OverloadedStaffRow {
   issues: string[]
 }
 
+type OverloadedSortKey = 'name' | 'department' | 'hours' | 'consecutiveDays'
+
 function OverloadedStaffTable({ result }: { result: unknown }) {
   const data = result as { overloaded: OverloadedStaffRow[]; total: number; periodDays: number; hoursLimit: number }
+  const [sortKey, setSortKey] = useState<OverloadedSortKey>('hours')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
   if (!data?.overloaded?.length) return <p className="text-xs text-[#6a6a6a] mt-1">No overloaded staff found.</p>
+
+  function handleSort(key: OverloadedSortKey) {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sorted = [...data.overloaded].sort((a, b) => {
+    const mul = sortDir === 'asc' ? 1 : -1
+    if (sortKey === 'name') return mul * a.name.localeCompare(b.name)
+    if (sortKey === 'department') return mul * a.department.localeCompare(b.department)
+    return mul * (a[sortKey] - b[sortKey])
+  })
+
+  function SortIcon({ col }: { col: OverloadedSortKey }) {
+    if (sortKey !== col) return <span className="ml-0.5 opacity-30">↕</span>
+    return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  function Th({ col, align = 'left', label }: { col: OverloadedSortKey; align?: 'left' | 'center'; label: string }) {
+    return (
+      <th
+        className={`px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide cursor-pointer select-none hover:text-[#222222] transition-colors text-${align} ${col === 'name' ? 'px-2.5' : ''}`}
+        onClick={() => handleSort(col)}
+      >
+        {label}<SortIcon col={col} />
+      </th>
+    )
+  }
 
   return (
     <div className="w-full mt-2 rounded-lg border border-[#dddddd] overflow-hidden text-[11px]">
@@ -166,15 +199,15 @@ function OverloadedStaffTable({ result }: { result: unknown }) {
         <table className="w-full border-collapse">
           <thead className="sticky top-0 bg-[#fafafa]">
             <tr className="border-b border-[#ebebeb]">
-              <th className="text-left px-2.5 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Staff</th>
-              <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Dept</th>
-              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Hours</th>
-              <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Consec.</th>
+              <Th col="name" label="Staff" />
+              <Th col="department" label="Dept" />
+              <Th col="hours" align="center" label="Hours" />
+              <Th col="consecutiveDays" align="center" label="Consec." />
               <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-wide">Issues</th>
             </tr>
           </thead>
           <tbody>
-            {data.overloaded.map((row, i) => (
+            {sorted.map((row, i) => (
               <tr key={i} className="border-b border-[#f5f5f5] last:border-0">
                 <td className="px-2.5 py-1.5 text-[#222222] font-medium">{row.name}</td>
                 <td className="px-2 py-1.5 text-[#6a6a6a]">{row.department}</td>

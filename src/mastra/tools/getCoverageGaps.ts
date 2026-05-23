@@ -62,7 +62,7 @@ export const getCoverageGaps = createTool({
     }
 
     const msPerDay = 24 * 60 * 60 * 1000
-    const daysChecked = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1
+    const daysChecked = Math.floor((end.getTime() - start.getTime()) / msPerDay) + 1
 
     return {
       gaps,
