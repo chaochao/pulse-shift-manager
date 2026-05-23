@@ -53,12 +53,22 @@ router.post('/shifts', async (req, res) => {
     const { staffId, departmentId, date, type, hours } = req.body
     const hospitalSettings = await prisma.hospitalSettings.findFirst()
     const timezone = hospitalSettings?.timezone ?? 'America/Los_Angeles'
-    // Normalize to midnight local time — date only, no time component
     const dateStr = String(date).split('T')[0]
     const normalizedDate = fromZonedTime(`${dateStr}T00:00:00`, timezone)
     const shift = await prisma.shift.create({
       data: { staffId, departmentId, date: normalizedDate, type, hours: Number(hours) },
       include: { staff: { include: { department: true } }, department: true }
+    })
+    await prisma.shiftChangeLog.create({
+      data: {
+        action: 'add',
+        shiftId: shift.id,
+        staffName: shift.staff.name,
+        departmentName: shift.department.name,
+        shiftDate: shift.date,
+        shiftType: shift.type,
+        source: 'manual',
+      }
     })
     res.json(shift)
   } catch (e) {
@@ -69,10 +79,30 @@ router.post('/shifts', async (req, res) => {
 router.put('/shifts/:id', async (req, res) => {
   try {
     const { staffId, departmentId, type, hours, status } = req.body
+    const before = await prisma.shift.findUnique({
+      where: { id: req.params.id },
+      include: { staff: true, department: true }
+    })
     const shift = await prisma.shift.update({
       where: { id: req.params.id },
       data: { staffId, departmentId, type, hours: Number(hours), status },
       include: { staff: { include: { department: true } }, department: true }
+    })
+    const diff: Record<string, { from: string; to: string }> = {}
+    if (before?.staffId !== staffId) diff.staff = { from: before?.staff.name ?? '', to: shift.staff.name }
+    if (before?.type !== type) diff.type = { from: before?.type ?? '', to: type }
+    if (before?.status !== status) diff.status = { from: before?.status ?? '', to: status }
+    await prisma.shiftChangeLog.create({
+      data: {
+        action: 'edit',
+        shiftId: shift.id,
+        staffName: shift.staff.name,
+        departmentName: shift.department.name,
+        shiftDate: shift.date,
+        shiftType: shift.type,
+        changes: Object.keys(diff).length > 0 ? JSON.stringify(diff) : null,
+        source: 'manual',
+      }
     })
     res.json(shift)
   } catch (e) {
@@ -82,7 +112,24 @@ router.put('/shifts/:id', async (req, res) => {
 
 router.delete('/shifts/:id', async (req, res) => {
   try {
+    const shift = await prisma.shift.findUnique({
+      where: { id: req.params.id },
+      include: { staff: true, department: true }
+    })
     await prisma.shift.delete({ where: { id: req.params.id } })
+    if (shift) {
+      await prisma.shiftChangeLog.create({
+        data: {
+          action: 'delete',
+          shiftId: null,
+          staffName: shift.staff.name,
+          departmentName: shift.department.name,
+          shiftDate: shift.date,
+          shiftType: shift.type,
+          source: 'manual',
+        }
+      })
+    }
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: String(e) })
@@ -190,6 +237,19 @@ router.put('/hospital-settings', async (req, res) => {
       },
     })
     res.json(updated)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
+router.get('/activity', async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 50), 200)
+    const logs = await prisma.shiftChangeLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
+    res.json(logs)
   } catch (e) {
     res.status(500).json({ error: String(e) })
   }

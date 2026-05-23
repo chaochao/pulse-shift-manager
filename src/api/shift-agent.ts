@@ -155,8 +155,17 @@ router.post('/confirm', async (req, res: import('express').Response) => {
       hours: number
     }>
 
-    await prisma.$transaction([
-      ...assignments.map(a =>
+    const staffIds = [...new Set(assignments.map(a => a.staffId))]
+    const deptIds = [...new Set(assignments.map(a => a.departmentId))]
+    const [staffList, deptList] = await Promise.all([
+      prisma.staff.findMany({ where: { id: { in: staffIds } }, select: { id: true, name: true } }),
+      prisma.department.findMany({ where: { id: { in: deptIds } }, select: { id: true, name: true } }),
+    ])
+    const staffMap = Object.fromEntries(staffList.map(s => [s.id, s.name]))
+    const deptMap = Object.fromEntries(deptList.map(d => [d.id, d.name]))
+
+    const createdShifts = await prisma.$transaction(
+      assignments.map(a =>
         prisma.shift.create({
           data: {
             staffId: a.staffId,
@@ -167,12 +176,26 @@ router.post('/confirm', async (req, res: import('express').Response) => {
             status: 'scheduled',
           },
         })
-      ),
-      prisma.shiftProposal.update({
-        where: { id: proposalId },
-        data: { status: 'confirmed' },
-      }),
-    ])
+      )
+    )
+
+    await prisma.shiftProposal.update({ where: { id: proposalId }, data: { status: 'confirmed' } })
+
+    await prisma.$transaction(
+      createdShifts.map((shift, i) =>
+        prisma.shiftChangeLog.create({
+          data: {
+            action: 'add',
+            shiftId: shift.id,
+            staffName: staffMap[assignments[i].staffId] ?? assignments[i].staffId,
+            departmentName: deptMap[assignments[i].departmentId] ?? assignments[i].departmentId,
+            shiftDate: shift.date,
+            shiftType: shift.type,
+            source: 'ai',
+          },
+        })
+      )
+    )
 
     res.json({ ok: true, confirmedCount: assignments.length })
   } catch (err) {

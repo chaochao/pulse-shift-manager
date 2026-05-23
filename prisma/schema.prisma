@@ -128,3 +128,16 @@ model ShiftProposal {
   expiresAt   DateTime
   createdAt   DateTime @default(now())
 }
+
+model ShiftChangeLog {
+  id             String   @id @default(cuid())
+  action         String   // "add" | "edit" | "delete"
+  shiftId        String?
+  staffName      String
+  departmentName String
+  shiftDate      DateTime
+  shiftType      String
+  changes        String?  // JSON-encoded diff for edits
+  source         String   @default("manual") // "manual" | "ai"
+  createdAt      DateTime @default(now())
+}
