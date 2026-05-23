@@ -7,7 +7,7 @@ function generateThreadId() {
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
   })
 }
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Sidebar } from './components/Sidebar'
 import { AskPulseDrawer } from './components/AskPulseDrawer'
 import { ShiftProposalModal } from './components/ShiftProposalModal'
@@ -20,12 +20,13 @@ function PulseAppInner() {
   const [chatMessages, setChatMessages] = useState<Message[]>([])
   const threadIdRef = useRef<string>(generateThreadId())
   const location = useLocation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { addHighlight } = useHighlight()
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
-      <Sidebar onAskPulse={() => setDrawerOpen(d => !d)} drawerOpen={drawerOpen} />
+      <Sidebar onAskPulse={() => { setDrawerOpen(d => !d); navigate('/pulse') }} drawerOpen={drawerOpen} />
       <AskPulseDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}

@@ -33,6 +33,7 @@ export function CalendarGrid() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [listShifts, setListShifts] = useState<Shift[] | null>(null)
   const [bodyVisible, setBodyVisible] = useState(true)
+  const [defaultDepartmentId, setDefaultDepartmentId] = useState<string | undefined>(undefined)
 
   function fadeSwap(update: () => void) {
     setBodyVisible(false)
@@ -76,20 +77,22 @@ export function CalendarGrid() {
 
   function openCardClick(shifts: Shift[], e: React.MouseEvent) {
     e.stopPropagation()
-    if (shifts.length === 1) {
-      setEditingShift(shifts[0])
-      setSelectedDate(new Date(shifts[0].date))
-      setDialogOpen(true)
-    } else {
-      setListShifts(shifts)
-    }
+    setListShifts(shifts)
   }
 
   function openShiftFromList(shift: Shift) {
     setEditingShift(shift)
     setSelectedDate(new Date(shift.date))
+    setDefaultDepartmentId(undefined)
     setDialogOpen(true)
     // keep listShifts alive so back button can restore it
+  }
+
+  function addShiftFromList(departmentId: string, date: Date) {
+    setEditingShift(null)
+    setSelectedDate(date)
+    setDefaultDepartmentId(departmentId)
+    setDialogOpen(true)
   }
 
   function navigate(dir: 'prev' | 'next') {
@@ -180,13 +183,15 @@ export function CalendarGrid() {
         date={selectedDate}
         shift={editingShift}
         departments={departments}
-        onClose={() => { setDialogOpen(false); setEditingShift(null); setListShifts(null) }}
+        defaultDepartmentId={defaultDepartmentId}
+        onClose={() => { setDialogOpen(false); setEditingShift(null); setListShifts(null); setDefaultDepartmentId(undefined) }}
         onBack={listShifts ? () => setDialogOpen(false) : undefined}
       />
 
       <ShiftListDialog
         shifts={listShifts}
         onEdit={openShiftFromList}
+        onAdd={addShiftFromList}
         onClose={() => setListShifts(null)}
         onDeleted={id => setListShifts(prev => {
           const next = prev ? prev.filter(s => s.id !== id) : null
@@ -369,10 +374,11 @@ function WeekBody({
 }
 
 function ShiftListDialog({
-  shifts, onEdit, onClose, onDeleted
+  shifts, onEdit, onAdd, onClose, onDeleted
 }: {
   shifts: Shift[] | null
   onEdit: (shift: Shift) => void
+  onAdd: (departmentId: string, date: Date) => void
   onClose: () => void
   onDeleted: (id: string) => void
 }) {
@@ -382,6 +388,7 @@ function ShiftListDialog({
   if (!shifts) return null
   const dept = shifts[0]?.department
   const date = shifts[0] ? format(new Date(shifts[0].date), 'MMM d, yyyy') : ''
+  const shiftDate = shifts[0] ? new Date(shifts[0].date) : new Date()
 
   async function handleDelete(shift: Shift) {
     await deleteShift.mutateAsync({
@@ -442,6 +449,14 @@ function ShiftListDialog({
               )}
             </div>
           ))}
+          <button
+            onClick={() => dept && onAdd(dept.id, shiftDate)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#dddddd] text-[#aaaaaa] hover:border-[#aaaaaa] hover:text-[#6a6a6a] hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="w-2 h-2 rounded-full border border-dashed border-current flex-none" />
+            <Plus size={13} />
+            <span className="text-sm">Add shift</span>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

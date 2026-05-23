@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useStaff } from '@/pulse/hooks/useStaff'
+import { useShifts } from '@/pulse/hooks/useShifts'
 import { useCreateShift, useUpdateShift, useDeleteShift } from '@/pulse/hooks/useShiftMutations'
 import type { Department, Shift, ShiftType } from '@/pulse/types'
 
@@ -20,19 +21,20 @@ interface ShiftDialogProps {
   departments: Department[]
   onClose: () => void
   onBack?: () => void
+  defaultDepartmentId?: string
 }
 
-export function ShiftDialog({ open, date, shift, departments, onClose, onBack }: ShiftDialogProps) {
+export function ShiftDialog({ open, date, shift, departments, onClose, onBack, defaultDepartmentId }: ShiftDialogProps) {
   const isEdit = shift !== null
 
-  const [departmentId, setDepartmentId] = useState(shift?.departmentId ?? '')
+  const [departmentId, setDepartmentId] = useState(shift?.departmentId ?? defaultDepartmentId ?? '')
   const [staffId, setStaffId] = useState(shift?.staffId ?? '')
   const [shiftType, setShiftType] = useState<ShiftType>(shift?.type ?? 'day')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setDepartmentId(shift?.departmentId ?? '')
+      setDepartmentId(shift?.departmentId ?? defaultDepartmentId ?? '')
       setStaffId(shift?.staffId ?? '')
       setShiftType(shift?.type ?? 'day')
       setConfirmDelete(false)
@@ -44,11 +46,23 @@ export function ShiftDialog({ open, date, shift, departments, onClose, onBack }:
   const updateShift = useUpdateShift()
   const deleteShift = useDeleteShift()
 
+  const dayStart = date ? new Date(date.toISOString().slice(0, 10) + 'T00:00:00') : null
+  const dayEnd = date ? new Date(date.toISOString().slice(0, 10) + 'T23:59:59') : null
+  const { data: dayShifts = [] } = useShifts(dayStart ?? new Date(0), dayEnd ?? new Date(0))
+  const alreadyScheduled = new Set(
+    dayShifts
+      .filter(s => !isEdit || s.id !== shift?.id)
+      .map(s => s.staffId)
+  )
+
   const filteredStaff = allStaff.filter((s) => s.departmentId === departmentId)
   const selectedStaff = allStaff.find((s) => s.id === staffId)
   const selectedDept = departments.find((d) => d.id === departmentId)
 
   const warnings: string[] = []
+  if (selectedStaff && alreadyScheduled.has(selectedStaff.id)) {
+    warnings.push(`${selectedStaff.name} already has a shift on this day`)
+  }
   if (selectedStaff && selectedDept) {
     const staffCerts = selectedStaff.certifications.split(',').filter(Boolean)
     const reqCerts = selectedDept.requiredCertifications.split(',').filter(Boolean)
@@ -121,9 +135,12 @@ export function ShiftDialog({ open, date, shift, departments, onClose, onBack }:
                   {selectedStaff && `${selectedStaff.name} — ${selectedStaff.role}`}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent style={{ width: 'auto', minWidth: '100%' }}>
                 {filteredStaff.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name} — {s.role}</SelectItem>
+                  <SelectItem key={s.id} value={s.id} disabled={alreadyScheduled.has(s.id)}>
+                    {s.name} — {s.role}
+                    {alreadyScheduled.has(s.id) && <span className="ml-1 text-[#aaaaaa]">(already scheduled)</span>}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
