@@ -25,6 +25,7 @@ export function useCreateShift() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
+      qc.invalidateQueries({ queryKey: ['activity'] })
       toast.success(`Shift created — ${data.staff.name}, ${data.department.name}, ${data.type} shift, ${fmtShiftDate(data.date)}`)
     },
     onError: () => toast.error('Failed to create shift')
@@ -47,6 +48,7 @@ export function useUpdateShift() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
+      qc.invalidateQueries({ queryKey: ['activity'] })
       toast.info(`Shift updated — ${data.staff.name}, ${data.department.name}, ${data.type} shift, ${fmtShiftDate(data.date)}`)
     },
     onError: () => toast.error('Failed to update shift')
@@ -63,6 +65,7 @@ export function useDeleteShift() {
     },
     onSuccess: (_, { staffName, deptName, date, type }) => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
+      qc.invalidateQueries({ queryKey: ['activity'] })
       toast.error(`Shift deleted — ${staffName}, ${deptName}, ${type} shift, ${fmtShiftDate(date)}`)
     },
     onError: () => toast.error('Failed to delete shift')
