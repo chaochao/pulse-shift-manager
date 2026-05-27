@@ -52,7 +52,7 @@ export function scoreWellbeing(input: ScoringInput): { average: number; byStaff:
     if (member.preferredShift !== 'none') {
       const matching = memberShifts.filter(s => s.type === member.preferredShift).length
       preferenceScore = memberShifts.length > 0 ? (matching / memberShifts.length) * 100 : 100
-      if (preferenceScore < 50) flags.push(`Only ${Math.round(preferenceScore)}% shifts match preferred "${member.preferredShift}"`)
+      if (preferenceScore < 50) flags.push(`Prefers ${member.preferredShift} shifts but only ${matching} of ${memberShifts.length} assigned shifts match`)
     }
     scores.push(preferenceScore)
 
