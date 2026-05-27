@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { format, startOfMonth, endOfMonth, differenceInDays } from 'date-fns'
+import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval } from 'date-fns'
 import { Sun, Moon, ChevronUp, ChevronDown, Flame } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useShifts } from '@/pulse/hooks/useShifts'
@@ -118,6 +118,23 @@ export function AnalyticsPage() {
     return Object.values(map).sort((a, b) => b.value - a.value)
   }, [allStaff, departments])
 
+  const deptCoverage = useMemo(() => {
+    const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+    return departments.map(dept => {
+      let dayMet = 0, nightMet = 0
+      for (const day of days) {
+        const key = format(day, 'yyyy-MM-dd')
+        const dayCount = weekShifts.filter(s => s.departmentId === dept.id && s.date.slice(0, 10) === key && s.type === 'day' && s.status !== 'absent').length
+        const nightCount = weekShifts.filter(s => s.departmentId === dept.id && s.date.slice(0, 10) === key && s.type === 'night' && s.status !== 'absent').length
+        if (dept.minStaffDay > 0 && dayCount >= dept.minStaffDay) dayMet++
+        if (dept.minStaffNight > 0 && nightCount >= dept.minStaffNight) nightMet++
+      }
+      const dayTotal = dept.minStaffDay > 0 ? days.length : null
+      const nightTotal = dept.minStaffNight > 0 ? days.length : null
+      return { dept, dayMet, nightMet, dayTotal, nightTotal }
+    })
+  }, [weekShifts, departments, weekStart, weekEnd])
+
   const rows = useMemo(() => {
     const deptMap = Object.fromEntries(departments.map(d => [d.id, d]))
     const staffToShow = deptFilter
@@ -180,6 +197,43 @@ export function AnalyticsPage() {
               weekEnd={weekEnd}
             />
           </div>
+        </div>
+
+        {/* Department coverage breakdown */}
+        <div className="px-6 py-4 border-b border-[#ebebeb]">
+          <p className="text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide mb-3">
+            Department Min Staffing — This Week ({format(weekStart, 'MMM d')}–{format(weekEnd, 'MMM d')})
+          </p>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-[#ebebeb]">
+                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Department</th>
+                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide"><span className="inline-flex items-center gap-1"><Sun size={11} className="text-[#f59e0b]" /> Day Min</span></th>
+                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Days Met</th>
+                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide"><span className="inline-flex items-center gap-1"><Moon size={11} className="text-[#6366f1]" /> Night Min</span></th>
+                <th className="text-left py-2 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Days Met</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deptCoverage.map(({ dept, dayMet, nightMet, dayTotal, nightTotal }) => (
+                <tr key={dept.id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa]">
+                  <td className="py-2.5 pr-4">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${dept.color}18`, color: dept.color }}>
+                      {dept.name}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-4 text-[#6a6a6a] text-xs">{dept.minStaffDay > 0 ? dept.minStaffDay : <span className="text-[#aaaaaa]">—</span>}</td>
+                  <td className="py-2.5 pr-4">
+                    {dayTotal !== null ? <CoveragePill met={dayMet} total={dayTotal} /> : <span className="text-xs text-[#aaaaaa]">—</span>}
+                  </td>
+                  <td className="py-2.5 pr-4 text-[#6a6a6a] text-xs">{dept.minStaffNight > 0 ? dept.minStaffNight : <span className="text-[#aaaaaa]">—</span>}</td>
+                  <td className="py-2.5">
+                    {nightTotal !== null ? <CoveragePill met={nightMet} total={nightTotal} /> : <span className="text-xs text-[#aaaaaa]">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Staff shift table */}
@@ -364,6 +418,18 @@ function StatCard({ label, value, color }: { label: string; value: number; color
       <span className="text-2xl font-semibold" style={{ color }}>{animated}</span>
       <span className="text-xs text-[#6a6a6a]">{label}</span>
     </div>
+  )
+}
+
+function CoveragePill({ met, total }: { met: number; total: number }) {
+  const allMet = met === total
+  const noneMet = met === 0
+  const bg = allMet ? '#f0fdf4' : noneMet ? '#fef2f2' : '#fffbeb'
+  const color = allMet ? '#16a34a' : noneMet ? '#dc2626' : '#d97706'
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: bg, color }}>
+      {met}/{total} days
+    </span>
   )
 }
 
