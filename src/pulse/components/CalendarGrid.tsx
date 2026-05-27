@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useHighlight } from '@/pulse/context/HighlightContext'
 import { format, isSameMonth } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus, Pencil, Sun, Moon, Trash2 } from 'lucide-react'
@@ -21,9 +22,21 @@ import { useDepartments } from '@/pulse/hooks/useDepartments'
 import { useDeleteShift } from '@/pulse/hooks/useShiftMutations'
 import type { Shift, Department, ViewMode } from '@/pulse/types'
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SHIFT_TYPES = ['day', 'night'] as const
-const SHIFT_LABELS = { day: 'Day (7am–7pm)', night: 'Night (7pm–7am)' }
+
+function fmtHour(h: number) {
+  if (h === 0) return '12am'
+  if (h === 12) return '12pm'
+  return h < 12 ? `${h}am` : `${h - 12}pm`
+}
+
+function shiftLabels(dayStart: number, nightStart: number) {
+  return {
+    day: `Day (${fmtHour(dayStart)}–${fmtHour(nightStart)})`,
+    night: `Night (${fmtHour(nightStart)}–${fmtHour(dayStart)})`,
+  }
+}
 
 export function CalendarGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('month')
@@ -43,6 +56,11 @@ export function CalendarGrid() {
   const { start, end } = getQueryRange(viewMode, currentDate)
   const { data: shifts = [] } = useShifts(start, end)
   const { data: departments = [] } = useDepartments()
+  const { data: hospitalSettings } = useQuery<{ dayShiftStartHour: number; nightShiftStartHour: number }>({
+    queryKey: ['hospital-settings'],
+    queryFn: () => fetch('/api/pulse/hospital-settings').then(r => r.json()),
+  })
+  const labels = shiftLabels(hospitalSettings?.dayShiftStartHour ?? 8, hospitalSettings?.nightShiftStartHour ?? 20)
 
   const { highlightDates } = useHighlight()
   const deptMap = Object.fromEntries(departments.map((d) => [d.id, d]))
@@ -141,7 +159,7 @@ export function CalendarGrid() {
       </div>
 
       {/* Day labels */}
-      <div className={cn('grid border-b border-[#dddddd] flex-none', viewMode === 'week' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-7')}>
+      <div className={cn('grid border-b border-[#dddddd] flex-none', viewMode === 'week' ? 'grid-cols-[80px_repeat(7,minmax(0,1fr))]' : 'grid-cols-7')}>
         {viewMode === 'week' && <div className="border-r border-[#ebebeb]" />}
         {DAY_LABELS.map((d) => (
           <div key={d} className="py-2 text-center text-xs font-medium text-[#6a6a6a] uppercase tracking-wide">
@@ -172,6 +190,7 @@ export function CalendarGrid() {
             deptMap={deptMap}
             gapsByDate={gapsByDate}
             highlightDates={highlightDates}
+            shiftLabels={labels}
             onCellClick={openCreate}
             onShiftClick={openCardClick}
           />
@@ -306,13 +325,14 @@ function MonthBody({
 }
 
 function WeekBody({
-  currentDate, byDateTypeDept, deptMap, gapsByDate, highlightDates, onCellClick, onShiftClick
+  currentDate, byDateTypeDept, deptMap, gapsByDate, highlightDates, shiftLabels, onCellClick, onShiftClick
 }: {
   currentDate: Date
   byDateTypeDept: Record<string, Record<string, Record<string, Shift[]>>>
   deptMap: Record<string, Department>
   gapsByDate: Record<string, GapInfo>
   highlightDates: Set<string>
+  shiftLabels: Record<string, string>
   onCellClick: (d: Date) => void
   onShiftClick: (shifts: Shift[], e: React.MouseEvent) => void
 }) {
@@ -321,10 +341,10 @@ function WeekBody({
   return (
     <div>
       {SHIFT_TYPES.map((type) => (
-        <div key={type} className="grid grid-cols-[80px_repeat(7,1fr)]">
+        <div key={type} className="grid grid-cols-[80px_repeat(7,minmax(0,1fr))]">
           <div className="border-b border-r border-[#ebebeb] flex items-center justify-center">
             <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
-              {SHIFT_LABELS[type]}
+              {shiftLabels[type]}
             </span>
           </div>
           {days.map((day, i) => {

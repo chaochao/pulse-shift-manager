@@ -6,8 +6,8 @@ import {
 import type { Shift, ViewMode } from '@/pulse/types'
 
 export function getMonthGrid(date: Date): Date[][] {
-  const start = startOfWeek(startOfMonth(date), { weekStartsOn: 0 })
-  const end = endOfWeek(endOfMonth(date), { weekStartsOn: 0 })
+  const start = startOfWeek(startOfMonth(date), { weekStartsOn: 1 })
+  const end = endOfWeek(endOfMonth(date), { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start, end })
   const weeks: Date[][] = []
   for (let i = 0; i < days.length; i += 7) {
@@ -18,8 +18,8 @@ export function getMonthGrid(date: Date): Date[][] {
 
 export function getWeekDays(date: Date): Date[] {
   return eachDayOfInterval({
-    start: startOfWeek(date, { weekStartsOn: 0 }),
-    end: endOfWeek(date, { weekStartsOn: 0 })
+    start: startOfWeek(date, { weekStartsOn: 1 }),
+    end: endOfWeek(date, { weekStartsOn: 1 })
   })
 }
 
@@ -36,8 +36,8 @@ export function formatMonthYear(date: Date): string {
 }
 
 export function formatWeekRange(date: Date): string {
-  const start = startOfWeek(date, { weekStartsOn: 0 })
-  const end = endOfWeek(date, { weekStartsOn: 0 })
+  const start = startOfWeek(date, { weekStartsOn: 1 })
+  const end = endOfWeek(date, { weekStartsOn: 1 })
   return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
 }
 
@@ -56,11 +56,11 @@ export function isToday(day: Date): boolean {
 export function getQueryRange(viewMode: ViewMode, date: Date): { start: Date; end: Date } {
   if (viewMode === 'month') {
     return {
-      start: startOfWeek(startOfMonth(date), { weekStartsOn: 0 }),
-      end: endOfWeek(endOfMonth(date), { weekStartsOn: 0 })
+      start: startOfWeek(startOfMonth(date), { weekStartsOn: 1 }),
+      end: endOfWeek(endOfMonth(date), { weekStartsOn: 1 })
     }
   }
-  const start = startOfWeek(date, { weekStartsOn: 0 })
+  const start = startOfWeek(date, { weekStartsOn: 1 })
   const end = new Date(start)
   end.setDate(end.getDate() + 6)
   return { start, end }
