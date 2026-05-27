@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { shiftAgent } from '../mastra/agents/shift-agent'
 import { PrismaClient } from '@prisma/client'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz'
 
 const router = Router()
 const url = process.env.PULSE_DATABASE_URL ?? 'file:./pulse.db'
@@ -45,27 +46,32 @@ router.post('/', async (req, res: import('express').Response) => {
     res.flushHeaders()
     streamStarted = true
 
-    const now = new Date()
-    const todayISO = now.toISOString().slice(0, 10)
+    const hospitalSettings = await prisma.hospitalSettings.findFirst()
+    const timezone = hospitalSettings?.timezone ?? 'America/Los_Angeles'
 
-    // Week = Monday to Sunday
-    const dow = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+    const now = new Date()
+    const zonedNow = toZonedTime(now, timezone)
+    const todayISO = formatInTimeZone(now, timezone, 'yyyy-MM-dd')
+
+    // Week = Monday to Sunday, computed in the hospital's timezone
+    const dow = zonedNow.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
     const daysFromMon = (dow + 6) % 7
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - daysFromMon)
+    const weekStart = new Date(zonedNow)
+    weekStart.setDate(zonedNow.getDate() - daysFromMon)
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekStart.getDate() + 6)
-    const weekStartISO = weekStart.toISOString().slice(0, 10)
-    const weekEndISO = weekEnd.toISOString().slice(0, 10)
+    const weekStartISO = formatInTimeZone(weekStart, timezone, 'yyyy-MM-dd')
+    const weekEndISO = formatInTimeZone(weekEnd, timezone, 'yyyy-MM-dd')
 
     const nextWeekStart = new Date(weekStart)
     nextWeekStart.setDate(weekStart.getDate() + 7)
     const nextWeekEnd = new Date(weekEnd)
     nextWeekEnd.setDate(weekEnd.getDate() + 7)
-    const nextWeekStartISO = nextWeekStart.toISOString().slice(0, 10)
-    const nextWeekEndISO = nextWeekEnd.toISOString().slice(0, 10)
+    const nextWeekStartISO = formatInTimeZone(nextWeekStart, timezone, 'yyyy-MM-dd')
+    const nextWeekEndISO = formatInTimeZone(nextWeekEnd, timezone, 'yyyy-MM-dd')
 
-    const dateContext = `[System context: Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${todayISO}). Weeks run Monday–Sunday. This week = ${weekStartISO} to ${weekEndISO}. Next week = ${nextWeekStartISO} to ${nextWeekEndISO}. Always use these exact ISO dates when calling tools for relative periods like "this week" or "next week".]`
+    const todayLabel = zonedNow.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: timezone })
+    const dateContext = `[System context: Today is ${todayLabel} (${todayISO}). Weeks run Monday–Sunday. This week = ${weekStartISO} to ${weekEndISO}. Next week = ${nextWeekStartISO} to ${nextWeekEndISO}. Always use these exact ISO dates when calling tools for relative periods like "this week" or "next week".]`
 
     const historyMessages = (history ?? []).map(m => ({
       role: m.role as 'user' | 'assistant',

@@ -1,8 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ChatApp } from './ChatApp'
 import { PulseApp } from '@/pulse/PulseApp'
 import { CalendarPage } from '@/pulse/pages/CalendarPage'
 import { AnalyticsPage } from '@/pulse/pages/AnalyticsPage'
@@ -25,7 +24,7 @@ createRoot(document.getElementById('root')!).render(
       <Toaster position="bottom-right" richColors />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<ChatApp />} />
+          <Route path="/" element={<Navigate to="/pulse" replace />} />
           <Route path="/pulse" element={<PulseApp />}>
             <Route index element={<CalendarPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
