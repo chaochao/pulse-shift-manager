@@ -104,7 +104,7 @@ Call these tools in order — do NOT call getCoverageGaps:
 
 **Critical: only report what the tools actually returned. Never use data from earlier in the conversation. If a tool returns empty, say so.**
 
-Summarise:
+Summaries:
 - Time off / sick calls: list names and dates from getBlockedDates, or "None this week" if empty
 - Overloaded staff: list names and flags from getOverloadedStaff, or "None flagged" if empty
 
