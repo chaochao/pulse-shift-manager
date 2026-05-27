@@ -81,6 +81,20 @@ const DEV_TODOS: { title: string; description: string; detail: string }[] = [
       'Possible mitigations: (1) enforce a tool call for every factual claim — never let the model answer from memory; (2) summarise or truncate old tool results in the thread before they crowd out the system prompt; (3) add a "reset thread" button in the drawer so the manager can start a fresh context without reloading the page.',
   },
   {
+    title: 'Time-off and sick call submission on Staff detail page',
+    description:
+      'There is no UI for staff to submit time-off requests or sick calls. Both can only be created directly in the database, making it impossible to demo a real request-and-approval workflow.',
+    detail:
+      'Add two actions to the Staff detail page: (1) a "Request Time Off" button that opens a form with date range, reason, and status fields — submitted requests land in a pending state until a manager approves them; (2) a "Report Sick Call" button that immediately logs a sick call for today. Both should appear in the existing activity/history section of the detail page and invalidate the calendar query so shifts update in real time.',
+  },
+  {
+    title: 'Add staff workflow in the Staff page',
+    description:
+      'There is currently no way to create a new staff member from within the app. Managers must add staff directly in the database.',
+    detail:
+      'Build an "Add Staff" dialog in the Staff page using the same pattern as the "Add Patient" flow in the Patients page: a button in the page header opens a form dialog with fields for name, role, department, contract hours, preferred shift, certifications, and max consecutive shifts.',
+  },
+  {
     title: 'Smarter gap-filling: borrow from overstaffed shifts',
     description:
       'When no free staff are available to fill a gap, check if a sibling shift in the same department on the same day has more staff than the minimum required. If so, move one person from that overstaffed shift to cover the gap.',
