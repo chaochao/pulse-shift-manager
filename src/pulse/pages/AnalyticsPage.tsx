@@ -7,6 +7,8 @@ import { useShifts } from '@/pulse/hooks/useShifts'
 import { useStaff } from '@/pulse/hooks/useStaff'
 import { useDepartments } from '@/pulse/hooks/useDepartments'
 import { usePatients } from '@/pulse/hooks/usePatients'
+import { ShiftDialog } from '@/pulse/components/ShiftDialog'
+import { ShiftListDialog } from '@/pulse/components/CalendarGrid'
 
 const MAX_HOURS_PER_WEEK = 40
 
@@ -32,6 +34,9 @@ export function AnalyticsPage() {
   const [deptFilter, setDeptFilter] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('total')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [shiftDialog, setShiftDialog] = useState<{ date: Date; deptId: string } | null>(null)
+  const [editingShift, setEditingShift] = useState<import('@/pulse/types').Shift | null>(null)
+  const [addShift, setAddShift] = useState<{ date: Date; deptId: string } | null>(null)
 
   const { data: shifts = [] } = useShifts(new Date(startDate), new Date(`${endDate}T23:59:59`))
   const { data: allStaff = [] } = useStaff()
@@ -121,17 +126,16 @@ export function AnalyticsPage() {
   const deptCoverage = useMemo(() => {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
     return departments.map(dept => {
-      let dayMet = 0, nightMet = 0
+      const gaps: { label: string; dayGap: number; nightGap: number }[] = []
       for (const day of days) {
         const key = format(day, 'yyyy-MM-dd')
         const dayCount = weekShifts.filter(s => s.departmentId === dept.id && s.date.slice(0, 10) === key && s.type === 'day' && s.status !== 'absent').length
         const nightCount = weekShifts.filter(s => s.departmentId === dept.id && s.date.slice(0, 10) === key && s.type === 'night' && s.status !== 'absent').length
-        if (dept.minStaffDay > 0 && dayCount >= dept.minStaffDay) dayMet++
-        if (dept.minStaffNight > 0 && nightCount >= dept.minStaffNight) nightMet++
+        const dayGap = dept.minStaffDay > 0 ? Math.max(0, dept.minStaffDay - dayCount) : 0
+        const nightGap = dept.minStaffNight > 0 ? Math.max(0, dept.minStaffNight - nightCount) : 0
+        if (dayGap > 0 || nightGap > 0) gaps.push({ label: format(day, 'MMM d'), date: day, dayGap, nightGap })
       }
-      const dayTotal = dept.minStaffDay > 0 ? days.length : null
-      const nightTotal = dept.minStaffNight > 0 ? days.length : null
-      return { dept, dayMet, nightMet, dayTotal, nightTotal }
+      return { dept, gaps }
     })
   }, [weekShifts, departments, weekStart, weekEnd])
 
@@ -202,38 +206,45 @@ export function AnalyticsPage() {
         {/* Department coverage breakdown */}
         <div className="px-6 py-4 border-b border-[#ebebeb]">
           <p className="text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide mb-3">
-            Department Min Staffing — This Week ({format(weekStart, 'MMM d')}–{format(weekEnd, 'MMM d')})
+            Staffing Gaps — This Week ({format(weekStart, 'MMM d')}–{format(weekEnd, 'MMM d')})
           </p>
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-[#ebebeb]">
-                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Department</th>
-                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide"><span className="inline-flex items-center gap-1"><Sun size={11} className="text-[#f59e0b]" /> Day Min</span></th>
-                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Days Met</th>
-                <th className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide"><span className="inline-flex items-center gap-1"><Moon size={11} className="text-[#6366f1]" /> Night Min</span></th>
-                <th className="text-left py-2 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide">Days Met</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deptCoverage.map(({ dept, dayMet, nightMet, dayTotal, nightTotal }) => (
-                <tr key={dept.id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa]">
-                  <td className="py-2.5 pr-4">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${dept.color}18`, color: dept.color }}>
-                      {dept.name}
-                    </span>
-                  </td>
-                  <td className="py-2.5 pr-4 text-[#6a6a6a] text-xs">{dept.minStaffDay > 0 ? dept.minStaffDay : <span className="text-[#aaaaaa]">—</span>}</td>
-                  <td className="py-2.5 pr-4">
-                    {dayTotal !== null ? <CoveragePill met={dayMet} total={dayTotal} /> : <span className="text-xs text-[#aaaaaa]">—</span>}
-                  </td>
-                  <td className="py-2.5 pr-4 text-[#6a6a6a] text-xs">{dept.minStaffNight > 0 ? dept.minStaffNight : <span className="text-[#aaaaaa]">—</span>}</td>
-                  <td className="py-2.5">
-                    {nightTotal !== null ? <CoveragePill met={nightMet} total={nightTotal} /> : <span className="text-xs text-[#aaaaaa]">—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-2 gap-x-8">
+            {deptCoverage.map(({ dept, gaps }) => (
+              <div key={dept.id} className="flex gap-4 py-2.5 border-b border-[#f5f5f5] items-start">
+                <div className="w-24 flex-none pt-0.5">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${dept.color}18`, color: dept.color }}>
+                    {dept.name}
+                  </span>
+                </div>
+                {gaps.length === 0 ? (
+                  <span className="text-xs text-[#16a34a] font-medium">✓ All covered</span>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {gaps.map(({ label, dayGap, nightGap, date }) => (
+                      <div key={label} className="flex items-center gap-2 text-xs">
+                        <button
+                          onClick={() => setShiftDialog({ date, deptId: dept.id })}
+                          className="text-[#6a6a6a] w-12 flex-none text-left cursor-pointer hover:text-[#4f86c6] hover:underline transition-colors"
+                        >
+                          {label}
+                        </button>
+                        {dayGap > 0 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium">
+                            <Sun size={10} /> {dayGap} day gap
+                          </span>
+                        )}
+                        {nightGap > 0 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium">
+                            <Moon size={10} /> {nightGap} night gap
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Staff shift table */}
@@ -353,6 +364,36 @@ export function AnalyticsPage() {
           </table>
         </div>
       </div>
+
+      <ShiftListDialog
+        shifts={shiftDialog ? weekShifts.filter(s =>
+          s.departmentId === shiftDialog.deptId &&
+          s.date.slice(0, 10) === format(shiftDialog.date, 'yyyy-MM-dd')
+        ) : null}
+        department={shiftDialog ? departments.find(d => d.id === shiftDialog.deptId) : undefined}
+        date={shiftDialog?.date}
+        onEdit={shift => { setShiftDialog(null); setEditingShift(shift) }}
+        onAdd={(deptId, date) => { setShiftDialog(null); setAddShift({ date, deptId }) }}
+        onClose={() => setShiftDialog(null)}
+        onDeleted={() => {}}
+      />
+      <ShiftDialog
+        open={editingShift !== null}
+        date={editingShift ? new Date(editingShift.date) : null}
+        shift={editingShift}
+        departments={departments}
+        defaultDepartmentId={editingShift?.departmentId}
+        onClose={() => setEditingShift(null)}
+        onBack={() => setEditingShift(null)}
+      />
+      <ShiftDialog
+        open={addShift !== null}
+        date={addShift?.date ?? null}
+        shift={null}
+        departments={departments}
+        defaultDepartmentId={addShift?.deptId}
+        onClose={() => setAddShift(null)}
+      />
     </div>
   )
 }
@@ -421,17 +462,6 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   )
 }
 
-function CoveragePill({ met, total }: { met: number; total: number }) {
-  const allMet = met === total
-  const noneMet = met === 0
-  const bg = allMet ? '#f0fdf4' : noneMet ? '#fef2f2' : '#fffbeb'
-  const color = allMet ? '#16a34a' : noneMet ? '#dc2626' : '#d97706'
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: bg, color }}>
-      {met}/{total} days
-    </span>
-  )
-}
 
 function DeptPieChart({ title, data }: { title: string; data: { name: string; color: string; value: number }[] }) {
   return (

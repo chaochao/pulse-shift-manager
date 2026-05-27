@@ -373,22 +373,24 @@ function WeekBody({
   )
 }
 
-function ShiftListDialog({
-  shifts, onEdit, onAdd, onClose, onDeleted
+export function ShiftListDialog({
+  shifts, onEdit, onAdd, onClose, onDeleted, department, date: explicitDate
 }: {
   shifts: Shift[] | null
   onEdit: (shift: Shift) => void
   onAdd: (departmentId: string, date: Date) => void
   onClose: () => void
   onDeleted: (id: string) => void
+  department?: Department
+  date?: Date
 }) {
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const deleteShift = useDeleteShift()
 
-  if (!shifts) return null
-  const dept = shifts[0]?.department
-  const date = shifts[0] ? format(new Date(shifts[0].date), 'MMM d, yyyy') : ''
-  const shiftDate = shifts[0] ? new Date(shifts[0].date) : new Date()
+  if (!shifts && !explicitDate) return null
+  const dept = department ?? shifts?.[0]?.department
+  const date = explicitDate ? format(explicitDate, 'MMM d, yyyy') : shifts?.[0] ? format(new Date(shifts[0].date), 'MMM d, yyyy') : ''
+  const shiftDate = explicitDate ?? (shifts?.[0] ? new Date(shifts[0].date) : new Date())
 
   async function handleDelete(shift: Shift) {
     await deleteShift.mutateAsync({
@@ -403,7 +405,7 @@ function ShiftListDialog({
   }
 
   return (
-    <Dialog open={!!shifts} onOpenChange={onClose}>
+    <Dialog open={shifts !== null} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
