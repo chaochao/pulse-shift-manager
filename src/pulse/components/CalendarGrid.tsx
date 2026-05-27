@@ -278,7 +278,7 @@ function MonthBody({
                 >
                   <Plus size={12} />
                 </button>
-                <span className="pointer-events-none absolute right-0 top-6 z-20 whitespace-nowrap rounded-md bg-[#222222] px-2 py-1 text-[11px] text-white opacity-0 peer-hover:opacity-100 transition-opacity">
+                <span className="pointer-events-none absolute right-0 top-6 z-20 whitespace-nowrap rounded-md bg-[#f5f5f5] border border-[#e0e0e0] px-2 py-1 text-[11px] text-[#222222] shadow-sm opacity-0 peer-hover:opacity-100 transition-opacity">
                   Add shift — {format(day, 'MMM d')}
                 </span>
               </div>
@@ -346,7 +346,7 @@ function WeekBody({
                     >
                       <Plus size={12} />
                     </button>
-                    <span className="pointer-events-none absolute right-0 top-6 z-20 whitespace-nowrap rounded-md bg-[#222222] px-2 py-1 text-[11px] text-white opacity-0 peer-hover:opacity-100 transition-opacity">
+                    <span className="pointer-events-none absolute right-0 top-6 z-20 whitespace-nowrap rounded-md bg-[#f5f5f5] border border-[#e0e0e0] px-2 py-1 text-[11px] text-[#222222] shadow-sm opacity-0 peer-hover:opacity-100 transition-opacity">
                       Add shift — {format(day, 'MMM d')}
                     </span>
                   </div>

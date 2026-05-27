@@ -121,7 +121,7 @@ export function StaffDetailPage() {
         <InfoPill
           label="Preferred Shift"
           value={staff.preferredShift === 'day' ? 'Day' : staff.preferredShift === 'night' ? 'Night' : staff.preferredShift}
-          icon={staff.preferredShift === 'day' ? <Sun size={12} className="text-[#f59e0b]" /> : <Moon size={12} className="text-[#6366f1]" />}
+          icon={staff.preferredShift === 'day' ? <Sun size={12} className="text-[#f59e0b]" /> : staff.preferredShift === 'night' ? <Moon size={12} className="text-[#6366f1]" /> : null}
         />
         <InfoPill label="Contract" value={`${staff.contractHoursPerWeek}h / week`} icon={<Clock size={12} className="text-[#6a6a6a]" />} />
         {staff.certifications && (
