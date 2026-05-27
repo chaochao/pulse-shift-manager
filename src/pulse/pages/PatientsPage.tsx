@@ -1,26 +1,81 @@
 import { useState } from 'react'
 import { format, differenceInDays, parseISO } from 'date-fns'
-import { Plus } from 'lucide-react'
+import { Plus, StickyNote, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient } from '@/pulse/hooks/usePatients'
 import { useDepartments } from '@/pulse/hooks/useDepartments'
 import { PatientDialog } from '@/pulse/components/PatientDialog'
 import type { Patient } from '@/pulse/types'
 
+type SortKey = 'name' | 'department' | 'admittedAt' | 'expectedDischargeAt' | 'daysLeft' | 'status'
+type SortDir = 'asc' | 'desc'
+
+const COLUMNS: { label: string; key: SortKey }[] = [
+  { label: 'Patient', key: 'name' },
+  { label: 'Department', key: 'department' },
+  { label: 'Admitted', key: 'admittedAt' },
+  { label: 'Expected Discharge', key: 'expectedDischargeAt' },
+  { label: 'Days Left', key: 'daysLeft' },
+  { label: 'Status', key: 'status' },
+]
+
+function sortPatients(patients: Patient[], key: SortKey, dir: SortDir): Patient[] {
+  return [...patients].sort((a, b) => {
+    let cmp = 0
+    switch (key) {
+      case 'name':
+        cmp = a.name.localeCompare(b.name)
+        break
+      case 'department':
+        cmp = a.department.name.localeCompare(b.department.name)
+        break
+      case 'admittedAt':
+        cmp = a.admittedAt.localeCompare(b.admittedAt)
+        break
+      case 'expectedDischargeAt':
+        cmp = a.expectedDischargeAt.localeCompare(b.expectedDischargeAt)
+        break
+      case 'daysLeft':
+        if (a.status === 'discharged' && b.status !== 'discharged') return 1
+        if (a.status !== 'discharged' && b.status === 'discharged') return -1
+        cmp = differenceInDays(parseISO(a.expectedDischargeAt), new Date())
+          - differenceInDays(parseISO(b.expectedDischargeAt), new Date())
+        break
+      case 'status':
+        cmp = a.status.localeCompare(b.status)
+        break
+    }
+    return dir === 'asc' ? cmp : -cmp
+  })
+}
+
 export function PatientsPage() {
   const [deptFilter, setDeptFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('admitted')
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('daysLeft')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   const { data: patients = [] } = usePatients()
   const { data: departments = [] } = useDepartments()
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   const filtered = patients.filter(p => {
     if (deptFilter && p.departmentId !== deptFilter) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
     return true
   })
+
+  const sorted = sortPatients(filtered, sortKey, sortDir)
 
   function openCreate() {
     setEditingPatient(null)
@@ -75,15 +130,30 @@ export function PatientsPage() {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-[#ebebeb]">
-              {['Patient', 'Department', 'Admitted', 'Expected Discharge', 'Days Left', 'Status'].map(h => (
-                <th key={h} className="text-left py-2 pr-4 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide last:pr-0">
-                  {h}
-                </th>
-              ))}
+              {COLUMNS.map(({ label, key }) => {
+                const active = sortKey === key
+                return (
+                  <th
+                    key={key}
+                    className="text-left py-2 pr-4 last:pr-0"
+                    onClick={() => handleSort(key)}
+                  >
+                    <button className="flex items-center gap-1 text-xs font-semibold text-[#6a6a6a] uppercase tracking-wide hover:text-[#222222] transition-colors">
+                      {label}
+                      {active
+                        ? sortDir === 'asc'
+                          ? <ChevronUp size={12} className="text-[#222222]" />
+                          : <ChevronDown size={12} className="text-[#222222]" />
+                        : <ChevronsUpDown size={12} className="opacity-30" />
+                      }
+                    </button>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
-            {filtered.map(patient => {
+            {sorted.map(patient => {
               const daysLeft = differenceInDays(parseISO(patient.expectedDischargeAt), new Date())
               const isOverdue = daysLeft < 0 && patient.status === 'admitted'
               const isDueSoon = daysLeft >= 0 && daysLeft <= 2 && patient.status === 'admitted'
@@ -98,6 +168,14 @@ export function PatientsPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: patient.department.color }} />
                       <span className="text-[#222222] font-medium">{patient.name}</span>
+                      {patient.notes && (
+                        <div className="relative group/note" onClick={e => e.stopPropagation()}>
+                          <StickyNote size={12} className="text-[#aaaaaa] cursor-default flex-none" />
+                          <div className="pointer-events-none absolute left-0 top-5 z-20 hidden group-hover/note:block bg-[#f5f5f5] border border-[#e0e0e0] text-[#222222] text-sm rounded-xl px-3.5 py-2.5 w-64 whitespace-pre-wrap shadow-md leading-relaxed">
+                            {patient.notes}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="py-2.5 pr-4">
@@ -137,7 +215,7 @@ export function PatientsPage() {
                 </tr>
               )
             })}
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-12 text-center text-sm text-[#6a6a6a]">
                   No patients found.
