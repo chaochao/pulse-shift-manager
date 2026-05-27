@@ -1,6 +1,15 @@
 import type { ScoringInput } from './types'
 
-// Coverage Score (0-100): what fraction of required minimum slots are filled in the period
+// Coverage Score (0-100): what fraction of required minimum slots are filled in the period.
+//
+// For every department × day × shift-type (day/night) that has a minimum > 0,
+// a "slot" is created. A slot is filled when the number of non-absent scheduled
+// shifts meets or exceeds the department minimum for that type.
+//
+//   score = filled_slots / total_slots × 100
+//
+// If no department has any minimum configured the score is 100 (nothing required).
+// Extra staff beyond the minimum do not raise the score above 100.
 export function scoreCoverage(input: ScoringInput): number {
   const { shifts, departments, dateRange } = input
 

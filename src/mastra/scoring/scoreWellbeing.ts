@@ -1,6 +1,18 @@
 import type { ScoringInput, StaffScoreDetail } from './types'
 
-// Wellbeing Score (0-100 per staff member): rest compliance, preferences, consecutive limits
+// Wellbeing Score (0-100): how healthy is each staff member's schedule.
+//
+// Five sub-scores are averaged into a single score per person; the function
+// returns both the team average and the per-person breakdown.
+//
+//   1. Rest compliance   — penalises gaps < minRestHoursBetweenShifts between consecutive shifts
+//   2. Consecutive limit — -20 pts per day over the member's maxConsecutiveShifts cap
+//   3. Preference match  — penalises when < 50% of shifts match the member's preferredShift
+//   4. Night cap         — penalises exceeding nightLoadBufferPct% of maxNightShiftsPerMonth
+//   5. Recovery window   — penalises < minRestAfterStretchHours off after a max-length run
+//
+// Each sub-score is 0-100; violations append a human-readable flag string used
+// by the caller to surface warnings.
 export function scoreWellbeing(input: ScoringInput): { average: number; byStaff: StaffScoreDetail[] } {
   const { shifts, staff, rules, dateRange } = input
 

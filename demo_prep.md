@@ -2,9 +2,92 @@
 
 ---
 
+## Vitalize — Company Context
+
+**Mission:** Automate hospital operations, starting with labor + capacity optimization. Goal: hospital operations that are safe, autonomous, fair, and cost-optimized.
+
+**Origin:** Started as a mental health app for clinicians. Signed two health systems, went live — but usage was low. Went on-site and heard the same thing everywhere: *"Staffing and scheduling is the bane of my existence. Fix that."* Visited 30+ health systems, saw hospitals still running critical operations on paper and spreadsheets. Landed a $240K pilot before writing a line of code; within four weeks it became a $1M deal. Grew 8× in 18 months, raised a $25M Series A.
+
+**The problem they're solving:**
+- Labor = ~60% of total hospital spend; ~10% is eliminable through optimized staffing
+- Clinical leaders spend **2–3 hours every day** manually balancing cost, skills, fairness, patient volume, and acuity just to fill shifts
+- Decisions are reactive and last-minute → chronic waste
+- Better staffing could recapture **5–10% of patient capacity** and a **1–2% top-line revenue lift** without new staff or facilities
+
+**Three product pillars:**
+
+| Pillar | What it does |
+|---|---|
+| **AI Scheduling (unit leaders)** | Automates 70% of daily scheduling; generates optimal schedules from demand forecasts, preferences, competencies; prompt-based interface |
+| **Staffing Intelligence (staffing offices)** | Enterprise-wide visibility + real-time EHR data; forecasts staffing needs by the hour (e.g. ICU demand 4h in advance); one-click execution of redeployment recommendations |
+| **Workforce Analytics (roadmap)** | Proactive alerts on over/under-staffing, overtime, FTE leakage; conversational AI assistant; action-oriented — triggers recommendations directly |
+| **Staff-Facing App** | Clinicians view shifts, set preferences, pick up/swap shifts, request time off, get real-time notifications; transparency into scheduling decisions |
+
+**Traction (in an industry with 12–36 month sales cycles):**
+
+| Date | Milestone |
+|---|---|
+| Dec 2023 | First health system contract closed — 0 lines of code, Figma prototype only |
+| Apr 2024 | MVP launched, first hospital live — 16 weeks from idea |
+| May 2024 | Pilot → $900K 3-year contract across 10 hospitals in 4 weeks |
+| Aug 2024 | 4 more enterprise contracts, >$2M cARR added |
+| Mar 2025 | Live across 20 hospitals; 10 launched in 6 weeks |
+| Summer 2025 | 20+ hospitals live, $6.5M cARR |
+| Winter 2025 | $25M Series A |
+
+**Roadmap (where they're going):**
+
+| Phase | Timeline | Focus |
+|---|---|---|
+| Staffing Infrastructure | Jan 2024 – now | OS for hospital staffing + scheduling |
+| Patient Flow & Capacity | Sept 2025 – mid 2026 | Demand forecasting, bottleneck prevention, capacity maximization |
+| Intelligent Labor Planning | 2026 | Workforce strategy system of record — matrices, benchmarks, financial goals |
+| Traveler Ecosystem | Future | Contingent labor marketplace via agency partnerships + open APIs |
+| AI-Native HR Stack | Future | Full hospital HR stack rebuilt from an AI-first perspective |
+
+### How Pulse Shift Manager maps to Vitalize's pillars
+
+| Vitalize capability | What I built |
+|---|---|
+| Prompt-based scheduling interface | Ask Pulse drawer — natural language queries, SSE streaming response |
+| Proactively identifies gaps + fills them | `getCoverageGaps` → `recommendShifts` tool chain |
+| Constraint-aware staff recommendations | Certifications, rest hours, consecutive days, time-off checks in `recommendShifts` |
+| Human-in-the-loop approval before execution | ShiftProposalModal — before/after diff, confirm/reject, atomic DB write |
+| Analytics on over/under-staffing | Analytics page — hours limit highlighting, consecutive days column, dept charts |
+| Audit trail for every action | ShiftChangeLog — `source: manual/ai`, JSON diff for edits |
+| Patient census overlaid with staffing | Patients page tied to same department model as shifts |
+
+---
+
 ## Elevator Pitch (30 seconds)
 
 Pulse Shift Manager is a hospital operations dashboard where administrators can manage staff schedules on a calendar, monitor patient census, and use an AI assistant ("Ask Pulse") to analyze coverage gaps and propose shift assignments. The key design principle: **the AI never writes to the database without explicit human approval** — every proposal goes through a review-and-confirm flow before any shift is created.
+
+---
+
+## The "Before" — What Hospitals Actually Use Today
+
+Use these as your opening slide or opening story. This is what Vitalize went on-site and saw at 30+ health systems.
+
+**Image 1 — Handwritten monthly calendar**
+A September 2024 calendar with shift assignments written by hand in pen. Each cell is a day; staff names and role abbreviations are squeezed into the boxes. No visibility into gaps, no searchability, no audit trail.
+
+**Image 2 — Pink daily staffing sheet (CH_Daily Staffing Assignment by Zone)**
+A printed form for one unit on one day (Friday, Nov 8, 2023). Day shift (7am–7:30pm) and night shift (7pm–7:30am) listed separately. Staff names typed, but:
+- Room assignments, zone numbers, and call-in status written by hand in the margins
+- "ON CALL", "Switched", "SICK LM" annotated in pen after the fact
+- New staff (Miranda Womack, Tori Jenkins, Ben Fellman) added by hand at the bottom
+- This is printed, annotated, reprinted — multiple times per day
+
+**Image 3 — White daily staffing sheet (multi-unit command center view)**
+A hospital-wide view for Wednesday, Feb 28, 2024. Shows every unit (2 North through CVICU) with RN/LPN/PCA/HUC counts, census, and call-ins. Key observations:
+- Call-ins tracked in a single handwritten box — no system, no history
+- "Not covered" gaps listed manually under Sitters
+- ED holds, Women's Services metrics, C-sections all written by hand
+- A Post-it note covers part of the Deaths column
+
+**Why this matters in your presentation:**
+> *"This is what a charge nurse is working with at 6am. Three documents, all paper, all out of date the moment they're printed. Ask Pulse replaces the 2–3 hours it takes to manually reconcile this into a decision."*
 
 ---
 

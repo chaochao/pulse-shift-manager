@@ -1,21 +1,24 @@
 import type { ScoringInput } from './types'
 
-// Score C: Equity Score (0-100)
-// Measures fairness of night/weekend distribution across the team
-export function scoreC(input: ScoringInput): number {
+// Equity Score (0-100): measures how fairly undesirable shifts are distributed across the team.
+// Combines three fairness signals:
+//   Night fairness  (40%) — std dev of night shift counts; penalises one person carrying all nights
+//   Weekend fairness(35%) — std dev of Sat/Sun counts; tighter tolerance than nights
+//   Overtime spread (25%) — penalises any individual carrying > 2× the team's average overtime
+// Not yet wired into the overall score in index.ts — reserved for a future "fairness" dimension.
+export function scoreEquity(input: ScoringInput): number {
   const { shifts, staff } = input
 
   if (staff.length < 2) return 100
 
   const activeShifts = shifts.filter(s => s.status !== 'absent')
 
-  // 1. Night shift distribution fairness
+  // Night shift distribution — std dev <= 1.5 → 100; std dev >= 4.0 → 0
   const nightCounts = staff.map(s => activeShifts.filter(sh => sh.staffId === s.id && sh.type === 'night').length)
   const nightStdDev = stdDev(nightCounts)
-  // Target: std dev <= 1.5 → score 100; std dev >= 4 → score 0
   const nightScore = Math.max(0, Math.min(100, 100 - ((nightStdDev - 1.5) / 2.5) * 100))
 
-  // 2. Weekend shift distribution fairness
+  // Weekend shift distribution — std dev <= 1.0 → 100; std dev >= 3.5 → 0
   const weekendCounts = staff.map(s =>
     activeShifts.filter(sh => {
       const day = sh.date.getDay()
@@ -23,10 +26,9 @@ export function scoreC(input: ScoringInput): number {
     }).length
   )
   const weekendStdDev = stdDev(weekendCounts)
-  // Target: std dev <= 1.0 → score 100; std dev >= 3.5 → score 0
   const weekendScore = Math.max(0, Math.min(100, 100 - ((weekendStdDev - 1.0) / 2.5) * 100))
 
-  // 3. Overtime distribution: no one carries > 2x team average overtime
+  // Overtime spread — count staff carrying > 2× team average overtime
   const totalHoursByStaff = staff.map(s => ({
     contractHoursPerWeek: s.contractHoursPerWeek,
     actual: activeShifts.filter(sh => sh.staffId === s.id).reduce((sum, sh) => sum + sh.hours, 0)
